@@ -1,5 +1,5 @@
 from tkinter import *
-
+import logging
 class MainWindow:
     def __init__(self, master):
         self.master = master
