@@ -1,5 +1,5 @@
 from tkinter import *
-import logging
+import sqlite3
 class MainWindow:
     def __init__(self, master):
         self.master = master
@@ -27,7 +27,7 @@ class EntryWindow:
         self.quit_button = Button(self.master, text = 'Quit', width = 25, command = lambda:self.close_windows(oldmaster))
         headline_ingredients = Label(self.master, text="Enter your Ingredients")
         headline_name = Label(self.master, text="Enter your Recipes name")
-        self.submit_button = Button(self.master, text='Submit', command=lambda:self.get_input())
+        self.submit_button = Button(self.master, text='Submit', command=lambda:self.store_data())
         self.entry_name = Entry(self.master)
         self.entry_ingredients = Entry(self.master)
         
@@ -47,6 +47,25 @@ class EntryWindow:
         name = self.entry_name.get()
         entry = self.entry_ingredients.get()
         print(f"{name}\n{entry}")
+    
+    def store_data(self):
+        name = self.entry_name.get()
+        ingredients = self.entry_ingredients.get()
+        
+        print(f"{name}\n{ingredients}")
+        
+        conn = sqlite3.connect('recipe.db')
+        table_create_query = '''CREATE TABLE IF NOT EXISTS Recipe_Data 
+                    (Name TEXT, Ingredients TEXT)'''
+        conn.execute(table_create_query)
+        
+        data_insert_query = '''INSERT INTO Recipe_Data (Name, Ingredients) VALUES
+        (?, ?)'''
+        data_insert_tuple = (name, ingredients)
+        cursor = conn.cursor()
+        cursor.execute(data_insert_query, data_insert_tuple)
+        conn.commit()
+        conn.close()
 
 class SearchWindow:
     def __init__(self, master, oldmaster):
@@ -68,7 +87,8 @@ class SearchWindow:
     def get_input(self):
         input = self.entry_ingredients.get()
         print(input)
-        
+
+
 def main(): 
     root = Tk()
     root.geometry('700x350')
