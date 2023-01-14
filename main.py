@@ -1,5 +1,6 @@
 from tkinter import *
 import sqlite3
+
 class MainWindow:
     def __init__(self, master):
         self.master = master
@@ -75,8 +76,6 @@ class RecipeDatabase(EntryWindow):
         name = self.entry_name.get()
         ingredients = self.entry_ingredients.get()
         
-        print(f"{name}\n{ingredients}")
-        
         conn = sqlite3.connect('recipe.db')
         table_create_query = '''CREATE TABLE IF NOT EXISTS Recipe_Data 
                     (Name TEXT, Ingredients TEXT)'''
@@ -92,11 +91,15 @@ class RecipeDatabase(EntryWindow):
     
     def search_data(self):
         conn = sqlite3.connect('recipe.db')
-        cursor = conn.execute('SELECT * FROM Recipe_Data WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
-        print(cursor.fetchall())
-    
-    def display_searched_data(self):
-        pass
+        conn_ = conn.cursor()
+        conn_.execute('SELECT * FROM Recipe_Data WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
+        i=0
+        for recipe in conn_:
+            for j in range(len(recipe)):
+                e = Entry(self.master, width=10, fg='blue')
+                e.pack(pady=i, padx=j)
+                e.insert(END, recipe[j])
+            i = i + 1
 
 def main(): 
     root = Tk()
