@@ -16,6 +16,7 @@ class MainWindow:
     def new_entry_window(self):
         self.master.withdraw()
         self.new_window = Toplevel()
+        self.new_window.config(bg = '#E0DFD5')
         self.new_window.geometry('1080x750')
         EntryWindow(self.new_window, self.master)
     
@@ -28,25 +29,25 @@ class MainWindow:
 class EntryWindow:
     def __init__(self, master, oldmaster):
         self.master = master
-        self.headline = Label(self.master, text = 'Enter your Recipe here')
-        self.quit_button = Button(self.master, text = 'Quit', width = 25, command = lambda:self.close_windows(oldmaster))
-        headline_ingredients = Label(self.master, text="Enter your Ingredients")
-        headline_name = Label(self.master, text="Enter your Recipes name")
-        headline_description = Label(self.master, text = "Enter the description here")
-        self.submit_button = Button(self.master, text='Submit', command=lambda:RecipeDatabase.store_data(self))
-        self.entry_name = Entry(self.master)
-        self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 20, height = 3)
-        self.entry_description = scrolledtext.ScrolledText(self.master, width = 20, height = 3)
+        headline = Label(self.master, text = 'Enter your recipe here', font = ('Arial', 20, 'underline'), bg = '#E0DFD5')
+        self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))
+        headline_ingredients = Label(self.master, text = "Enter your ingredients", font = ('Arial', 15), bg = '#E0DFD5')
+        headline_name = Label(self.master, text = "Enter your recipes name", font = ('Arial', 15), bg = '#E0DFD5')
+        headline_description = Label(self.master, text = "Enter the description", font = ('Arial', 15), bg = '#E0DFD5')
+        self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:RecipeDatabase.store_data(self))
+        self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
+        self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
+        self.entry_description = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
         
-        self.headline.pack()
+        headline.pack(pady=20)
         headline_name.pack()
         self.entry_name.pack(pady=10)
         headline_ingredients.pack()
-        self.entry_ingredients.pack()
+        self.entry_ingredients.pack(pady=10)
         headline_description.pack()
-        self.entry_description.pack()
-        self.submit_button.pack()
-        self.quit_button.pack()
+        self.entry_description.pack(pady=10)
+        self.submit_button.pack(pady=20)
+        self.quit_button.place(x = 395, y = 650)
 
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
@@ -60,7 +61,7 @@ class EntryWindow:
 class SearchWindow:
     def __init__(self, master, oldmaster):
         self.master = master
-        self.headline = Label(self.master, text = 'Search for your Recipe here')
+        self.headline = Label(self.master, text = 'Search for your recipe here')
         self.quit_button = Button(self.master, text = 'Quit', width = 25, command = lambda:self.close_windows(oldmaster))
         self.search_button = Button(self.master, text='Submit', command=lambda:RecipeDatabase.search_data(self))
         self.entry_name = Entry(self.master)
