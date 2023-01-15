@@ -64,7 +64,7 @@ class SearchWindow:
         self.master = master
         self.headline = Label(self.master, text = 'Search for your recipe here', font = ('Arial', 20, 'underline'), bg = '#E0DFD5')
         self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))
-        self.search_button = Button(self.master, text='Submit', width = 25, font = ('Arial', 15), command=lambda:RecipeDatabase.search_data(self))
+        self.search_button = Button(self.master, text='Search', width = 25, font = ('Arial', 15), command=lambda: [RecipeDatabase.name_output(self), RecipeDatabase.search_data(self)])
         self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
         
         self.headline.pack(pady = 20)
@@ -109,15 +109,25 @@ class RecipeDatabase(EntryWindow):
     def search_data(self):
         conn = sqlite3.connect('recipe.db')
         conn_ = conn.cursor()
-        conn_.execute('SELECT * FROM Recipe_Data WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
-        
+        conn_.execute('SELECT Ingredients, Description FROM Recipe_Data WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
         i = 0
         for recipe in conn_:
             for j in range(len(recipe)):
                 e = Label(self.master, width = 30, text = recipe[j], font = ('Arial', 15))
-                e.pack(pady = i, padx = j)
+                e.pack(pady = i + 5, padx = j)
             i = i + 1
-
+    
+    def name_output(self):
+        conn = sqlite3.connect('recipe.db')
+        conn_ = conn.cursor()
+        conn_.execute('SELECT Name FROM Recipe_Data WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
+        i = 0
+        for recipe in conn_:
+            for j in range(len(recipe)):
+                e = Label(self.master, width = 30, text = recipe[j], font = ('Arial', 20), bg = '#E0DFD5')
+                e.pack(pady = 20)
+            i = i + 1
+        
 def main(): 
     root = Tk(className="Cookbook")
     root.configure(bg = '#C6AD94')
