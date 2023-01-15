@@ -1,4 +1,6 @@
 from tkinter import *
+from tkinter import scrolledtext
+from tkinter import messagebox
 import sqlite3
 
 class MainWindow:
@@ -31,8 +33,8 @@ class EntryWindow:
         headline_description = Label(self.master, text = "Enter the description here")
         self.submit_button = Button(self.master, text='Submit', command=lambda:RecipeDatabase.store_data(self))
         self.entry_name = Entry(self.master)
-        self.entry_ingredients = Text(self.master, width = 20, height = 3)
-        self.entry_description = Text(self.master, width = 20, height = 3)
+        self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 20, height = 3)
+        self.entry_description = scrolledtext.ScrolledText(self.master, width = 20, height = 3)
         
         self.headline.pack()
         headline_name.pack()
@@ -80,9 +82,16 @@ class RecipeDatabase(EntryWindow):
         ingredients = self.entry_ingredients.get("1.0", END)
         description = self.entry_description.get("1.0", END)
         
+        if len(name) == 0:
+            messagebox.showinfo('Error', 'Fill in the name space')
+        elif len(ingredients) == 0:
+            messagebox.showinfo('Error', 'Fill in the ingredients space')
+        elif len(description) == 0:
+            messagebox.showinfo('Error', 'Fill in the description space')
+        
         conn = sqlite3.connect('recipe.db')
         table_create_query = '''CREATE TABLE IF NOT EXISTS Recipe_Data 
-                    (Name TEXT, Ingredients TEXT, Description TEXT)'''
+                    (Name TEXT NOT NULL, Ingredients TEXT NOT NULL, Description TEXT NOT NULL)'''
         conn.execute(table_create_query)
         
         data_insert_query = '''INSERT INTO Recipe_Data (Name, Ingredients, Description) VALUES
