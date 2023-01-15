@@ -6,21 +6,23 @@ import sqlite3
 class MainWindow:
     def __init__(self, master):
         self.master = master
-        self.entry_button = Button(self.master, text = 'Recipe Entry', width = 25, command = self.new_entry_window)
-        self.search_button = Button(self.master, text = 'Recipe Search', width = 25, command = self.new_search_window)
-        self.entry_button.pack()
-        self.search_button.pack()
-
+        self.entry_button = Button(self.master, text = 'Recipe Entry', font = ('Arial', 15), width = 50, height = 2, command = self.new_entry_window)
+        self.search_button = Button(self.master, text = 'Recipe Search', font = ('Arial', 15), width = 50, height = 2, command = self.new_search_window)
+        self.search_button.place(x = 270, y = 450)
+        self.entry_button.place(x = 270, y = 360)
+        headline = Label(self.master, text = 'COOKBOOK', font = ('Arial', 40), bg = '#C6AD94', fg = 'white')
+        headline.pack(pady=150)
+        
     def new_entry_window(self):
         self.master.withdraw()
         self.new_window = Toplevel()
-        self.new_window.geometry('700x350')
+        self.new_window.geometry('1080x750')
         EntryWindow(self.new_window, self.master)
     
     def new_search_window(self):
         self.master.withdraw()
         self.new_window = Toplevel()
-        self.new_window.geometry('700x350')
+        self.new_window.geometry('1080x750')
         SearchWindow(self.new_window, self.master)
        
 class EntryWindow:
@@ -117,8 +119,9 @@ class RecipeDatabase(EntryWindow):
             i = i + 1
 
 def main(): 
-    root = Tk()
-    root.geometry('700x350')
+    root = Tk(className="Cookbook")
+    root.configure(bg = '#C6AD94')
+    root.geometry('1080x750')
     MainWindow(root)
     root.mainloop()
 
