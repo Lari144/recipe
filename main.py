@@ -23,6 +23,7 @@ class MainWindow:
     def new_search_window(self):
         self.master.withdraw()
         self.new_window = Toplevel()
+        self.new_window.config(bg = '#E0DFD5')
         self.new_window.geometry('1080x750')
         SearchWindow(self.new_window, self.master)
        
@@ -61,15 +62,15 @@ class EntryWindow:
 class SearchWindow:
     def __init__(self, master, oldmaster):
         self.master = master
-        self.headline = Label(self.master, text = 'Search for your recipe here')
-        self.quit_button = Button(self.master, text = 'Quit', width = 25, command = lambda:self.close_windows(oldmaster))
-        self.search_button = Button(self.master, text='Submit', command=lambda:RecipeDatabase.search_data(self))
-        self.entry_name = Entry(self.master)
+        self.headline = Label(self.master, text = 'Search for your recipe here', font = ('Arial', 20, 'underline'), bg = '#E0DFD5')
+        self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))
+        self.search_button = Button(self.master, text='Submit', width = 25, font = ('Arial', 15), command=lambda:RecipeDatabase.search_data(self))
+        self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
         
-        self.headline.pack()
+        self.headline.pack(pady = 20)
         self.entry_name.pack()
-        self.search_button.pack()
-        self.quit_button.pack()
+        self.search_button.pack(pady = 20)
+        self.quit_button.place(x = 395, y = 650)
 
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
@@ -112,10 +113,8 @@ class RecipeDatabase(EntryWindow):
         
         i = 0
         for recipe in conn_:
-            if recipe == None:
-                pass
             for j in range(len(recipe)):
-                e = Label(self.master, width = 10, text = recipe[j])
+                e = Label(self.master, width = 30, text = recipe[j], font = ('Arial', 15))
                 e.pack(pady = i, padx = j)
             i = i + 1
 
