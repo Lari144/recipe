@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import scrolledtext
 from tkinter import messagebox
+from tkinter import ttk
 import sqlite3
 
 class MainWindow:
@@ -38,7 +39,9 @@ class EntryWindow:
         self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:RecipeDatabase.store_data(self))
         self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
         self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
-        self.entry_description = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
+        self.entry_description = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))     
+        headline_categories = Label(self.master, text = "Choose the categorie", font = ('Arial', 15), bg = '#E0DFD5')
+        self.categories = ttk.Combobox(self.master, values=['', 'soup', 'bread'], font = ('Arial', 15), width = 43)
         
         headline.pack(pady=20)
         headline_name.pack()
@@ -47,6 +50,8 @@ class EntryWindow:
         self.entry_ingredients.pack(pady=10)
         headline_description.pack()
         self.entry_description.pack(pady=10)
+        headline_categories.pack()
+        self.categories.pack()
         self.submit_button.pack(pady=20)
         self.quit_button.place(x = 395, y = 650)
 
@@ -85,6 +90,7 @@ class RecipeDatabase(EntryWindow):
         name = self.entry_name.get()
         ingredients = self.entry_ingredients.get("1.0", END)
         description = self.entry_description.get("1.0", END)
+        categories = self.categories.get()
         
         if len(name) == 0:
             messagebox.showinfo('Error', 'Fill in the name space')
@@ -95,12 +101,11 @@ class RecipeDatabase(EntryWindow):
         
         conn = sqlite3.connect('recipe.db')
         table_create_query = '''CREATE TABLE IF NOT EXISTS Recipe_Data 
-                    (Name TEXT NOT NULL, Ingredients TEXT NOT NULL, Description TEXT NOT NULL)'''
+                    (Name TEXT NOT NULL, Ingredients TEXT NOT NULL, Description TEXT NOT NULL, Categories TEXT NOT NULL)'''
         conn.execute(table_create_query)
-        
-        data_insert_query = '''INSERT INTO Recipe_Data (Name, Ingredients, Description) VALUES
-        (?, ?, ?)'''
-        data_insert_tuple = (name, ingredients, description)
+        data_insert_query = '''INSERT INTO Recipe_Data (Name, Ingredients, Description, Categories) VALUES
+        (?, ?, ?, ?)'''
+        data_insert_tuple = (name, ingredients, description, categories)
         cursor = conn.cursor()
         cursor.execute(data_insert_query, data_insert_tuple)
         conn.commit()
@@ -109,7 +114,7 @@ class RecipeDatabase(EntryWindow):
     def search_data(self):
         conn = sqlite3.connect('recipe.db')
         conn_ = conn.cursor()
-        conn_.execute('SELECT Ingredients, Description FROM Recipe_Data WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
+        conn_.execute('SELECT Ingredients, Description, Categories FROM Recipe_Data WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
         i = 0
         for recipe in conn_:
             for j in range(len(recipe)):
