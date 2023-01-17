@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import scrolledtext
 from tkinter import messagebox
 from tkinter import ttk
+from tkinter.font import nametofont
 import sqlite3
 
 class MainWindow:
@@ -9,8 +10,11 @@ class MainWindow:
         self.master = master
         self.entry_button = Button(self.master, text = 'Recipe Entry', font = ('Arial', 15), width = 50, height = 2, command = self.new_entry_window)
         self.search_button = Button(self.master, text = 'Recipe Search', font = ('Arial', 15), width = 50, height = 2, command = self.new_search_window)
+        self.recipes_button = Button(self.master, text = 'All Recipes', font = ('Arial', 15), width = 50, height = 2, command = self.new_recipes_window)
+        
         self.search_button.place(x = 270, y = 450)
         self.entry_button.place(x = 270, y = 360)
+        self.recipes_button.place(x = 270, y = 540)
         headline = Label(self.master, text = 'COOKBOOK', font = ('Arial', 40), bg = '#C6AD94', fg = 'white')
         headline.pack(pady=150)
         
@@ -27,6 +31,13 @@ class MainWindow:
         self.new_window.config(bg = '#E0DFD5')
         self.new_window.geometry('1080x750')
         SearchWindow(self.new_window, self.master)
+    
+    def new_recipes_window(self):
+        self.master.withdraw()
+        self.new_window = Toplevel()
+        self.new_window.config(bg = '#E0DFD5')
+        self.new_window.geometry('1080x750')
+        RecipesWindow(self.new_window, self.master)
        
 class EntryWindow:
     def __init__(self, master, oldmaster):
@@ -76,6 +87,17 @@ class SearchWindow:
         self.entry_name.pack()
         self.search_button.pack(pady = 20)
         self.quit_button.place(x = 395, y = 650)
+
+    def close_windows(self, oldmaster):
+        oldmaster.deiconify()
+        self.master.destroy()
+
+class RecipesWindow:
+    def __init__(self, master, oldmaster):
+        self.master = master
+        self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))   
+        self.quit_button.place(x = 395, y = 650)
+        RecipeDatabase.recipe_output(self)
 
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
@@ -131,6 +153,32 @@ class RecipeDatabase(EntryWindow):
             for j in range(len(recipe)):
                 e = Label(self.master, width = 30, text = recipe[j], font = ('Arial', 20), bg = '#E0DFD5')
                 e.pack(pady = 20)
+            i = i + 1
+    
+    def recipe_output(self):
+        conn = sqlite3.connect('recipe.db')
+        conn_ = conn.cursor()
+        conn_.execute('SELECT Name FROM Recipe_Data')
+        
+        style= ttk.Style()
+        style.theme_use('clam')
+        style.configure('Treeview', rowheight = 40)
+        
+        tree= ttk.Treeview(self.master, column=("c1"), show='headings', selectmode="browse")
+        tree.column("#1", anchor=CENTER, width=800)
+        tree.heading("#1", text="Recipes")
+        nametofont('TkHeadingFont').configure(size=20)
+        nametofont('TkDefaultFont').configure(size=16)
+        treeScroll = ttk.Scrollbar(self.master)
+        treeScroll.configure(command=tree.yview)
+        tree.configure(yscrollcommand=treeScroll.set)
+        treeScroll.pack(side= RIGHT, fill = BOTH)
+        tree.pack(pady=100)
+        
+        i = 0
+        for recipe in conn_:
+            for j in range(len(recipe)):
+                tree.insert('', 'end', values=recipe[j])
             i = i + 1
         
 def main(): 
