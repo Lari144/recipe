@@ -97,7 +97,7 @@ class RecipesWindow():
         self.master = master
         select_button = Button(self.master, text='Show Recipe', command=lambda:self.select_item())
         select_button.place(x = 395, y = 600)
-        delete_button = Button(self.master, text='Delete Recipe', command=lambda:self.delete_item(self))
+        delete_button = Button(self.master, text='Delete Recipe', command=lambda:self.delete_item())
         delete_button.place(x = 534, y = 600)
         self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))   
         self.quit_button.place(x = 395, y = 670)
@@ -118,15 +118,9 @@ class RecipesWindow():
         self.tree.item(selected_item)
     
     def delete_item(self):
-        selected_item = self.tree.focus()
-        item_index = self.tree.index(selected_item)
-        conn = sqlite3.connect('recipe.db')
-        cursor = conn.cursor()
-
-        cursor.execute('DELETE FROM RECIPE WHERE id=' (item_index))
-        
-        conn.commit()
-        conn.close()
+        selected_item = self.tree.selection()
+        self.tree.delete(*selected_item)
+        messagebox.showinfo("Info", "Recipe deleted successfully")
 
 class RecipeDatabase(EntryWindow):
     
