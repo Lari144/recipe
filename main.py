@@ -38,17 +38,18 @@ class MainWindow:
         self.new_window.config(bg = '#E0DFD5')
         self.new_window.geometry('1080x750')
         RecipesWindow(self.new_window, self.master)
-       
+     
 class EntryWindow:
     def __init__(self, master, oldmaster):
         self.master = master
+        self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
+        
         headline = Label(self.master, text = 'Enter your recipe here', font = ('Arial', 20, 'underline'), bg = '#E0DFD5')
         self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))
         headline_ingredients = Label(self.master, text = "Enter your ingredients", font = ('Arial', 15), bg = '#E0DFD5')
         headline_name = Label(self.master, text = "Enter your recipes name", font = ('Arial', 15), bg = '#E0DFD5')
         headline_description = Label(self.master, text = "Enter the description", font = ('Arial', 15), bg = '#E0DFD5')
         self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:RecipeDatabase.store_data(self))
-        self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
         self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
         self.entry_description = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))     
         headline_categories = Label(self.master, text = "Choose the categorie", font = ('Arial', 15), bg = '#E0DFD5')
@@ -74,7 +75,7 @@ class EntryWindow:
         self.entry_name.get()
         self.entry_ingredients.get()
         self.entry_description.get()
-
+        
 class SearchWindow:
     def __init__(self, master, oldmaster):
         self.master = master
@@ -95,6 +96,7 @@ class SearchWindow:
 class RecipesWindow():
     def __init__(self, master, oldmaster):
         self.master = master
+        self.selected_items = []
         select_button = Button(self.master, text='Show Recipe', command=lambda:self.select_item())
         select_button.place(x = 395, y = 600)
         delete_button = Button(self.master, text='Delete Recipe', command=lambda:self.delete_item())
@@ -102,30 +104,36 @@ class RecipesWindow():
         self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))   
         self.quit_button.place(x = 395, y = 670)
         self.tree = ttk.Treeview(self.master, column=("c1"), show='tree', selectmode="browse")
+
         RecipeDatabase.recipe_output(self)
 
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
         self.master.destroy()
     
-    def select_item(self):
-        selected_item = self.tree.focus()
-        item_index = self.tree.index(selected_item)
-        print(item_index)
-    
     def edit_item(self):
         selected_item = self.tree.focus()
         self.tree.item(selected_item)
     
-    def delete_item(self):
-        selected_item = self.tree.selection()
-        self.tree.delete(*selected_item)
-        messagebox.showinfo("Info", "Recipe deleted successfully")
-
-class RecipeDatabase(EntryWindow):
+    def select_item(self):
+        for selected_item in self.tree.selection():
+            top = Toplevel(self.master)
+            top.geometry('750x250')
+            item = self.tree.item(selected_item)
+            record = item['values']
+            for j in range(len(record)):
+                e = Label(top, width = 30, text = record[j], font = ('Arial', 15))
+                e.pack()
     
-    def __init__(self, master, oldmaster):
-        super().__init__(master, oldmaster)
+    def delete_item(self):
+        for selected_item in self.tree.selection():
+            item = self.tree.item(selected_item)
+            print(item)
+            RecipeDatabase.delete_item(item['values'][0])
+            self.tree.delete(selected_item)
+            return
+
+class RecipeDatabase():
         
     def store_data(self):
         name = self.entry_name.get()
@@ -159,6 +167,7 @@ class RecipeDatabase(EntryWindow):
         (?)''', [categories])
         categorie_id = cursor.lastrowid
         
+        
         cursor.execute('''INSERT INTO Recipe (Name, Ingredients, Description, Categorie_ID) VALUES (?, ?, ?, ?)''',
                        (name, ingredients, description, categorie_id))
         
@@ -168,7 +177,7 @@ class RecipeDatabase(EntryWindow):
     def search_data(self):
         conn = sqlite3.connect('recipe.db')
         conn_ = conn.cursor()
-        conn_.execute('SELECT Ingredients, Description, Categorie_ID FROM Recipe WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
+        conn_.execute('SELECT Ingredients, Description FROM Recipe WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
         i = 0
         for recipe in conn_:
             for j in range(len(recipe)):
@@ -183,15 +192,14 @@ class RecipeDatabase(EntryWindow):
         i = 0
         for recipe in conn_:
             for j in range(len(recipe)):
-                e = Label(self.master, width = 30, text = recipe[j], font = ('Arial', 20), bg = '#E0DFD5')
+                e = Label(self.master, width = 30, text = recipe[j], font = ('Arial', 20, 'underline'), bg = '#E0DFD5')
                 e.pack(pady = 20)
             i = i + 1
-    
+
     def recipe_output(self):
         conn = sqlite3.connect('recipe.db')
         conn_ = conn.cursor()
-        conn_.execute('SELECT Name FROM Recipe')
-        
+        conn_.execute('SELECT Name, Ingredients, Description FROM Recipe')
         style= ttk.Style()
         style.theme_use('clam')
         style.configure('Treeview', rowheight = 40)
@@ -206,12 +214,16 @@ class RecipeDatabase(EntryWindow):
         self.tree.configure(yscrollcommand=treeScroll.set)
         treeScroll.pack(side= RIGHT, fill = BOTH)
         self.tree.pack(pady=100)
-        
-        i = 0
+
         for recipe in conn_:
-            for j in range(len(recipe)):
-                self.tree.insert('', 'end', values=recipe[j])
-            i = i + 1
+            self.tree.insert('', 'end', values=recipe)
+
+    def delete_item(name):
+        conn = sqlite3.connect("recipe.db")
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM Recipe WHERE Name LIKE ?", ('%' + name,))
+        conn.commit()
+        conn.close()
 
 def main(): 
     root = Tk(className="Cookbook")
