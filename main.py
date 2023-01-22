@@ -97,10 +97,13 @@ class RecipesWindow():
     def __init__(self, master, oldmaster):
         self.master = master
         self.selected_items = []
+        
+        edit_button = Button(self.master, text='Edit Recipe', command=lambda:self.edit_item())
+        edit_button.place(x = 620,y = 600)
         select_button = Button(self.master, text='Show Recipe', command=lambda:self.select_item())
-        select_button.place(x = 395, y = 600)
+        select_button.place(x = 310, y = 600)
         delete_button = Button(self.master, text='Delete Recipe', command=lambda:self.delete_item())
-        delete_button.place(x = 534, y = 600)
+        delete_button.place(x = 460, y = 600)
         self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))   
         self.quit_button.place(x = 395, y = 670)
         self.tree = ttk.Treeview(self.master, column=("c1"), show='tree', selectmode="browse")
@@ -110,10 +113,24 @@ class RecipesWindow():
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
         self.master.destroy()
-    
+        
     def edit_item(self):
-        selected_item = self.tree.focus()
-        self.tree.item(selected_item)
+        for selected_item in self.tree.selection():
+            top = Toplevel(self.master)
+            top.geometry('750x250')
+            item = self.tree.item(selected_item)
+
+            e0 = Entry(top, width = 30, text = item['values'][0], font = ('Arial', 15))
+            e0.insert(0, item['values'][0])
+            e1 = Entry(top, width = 30, text = item['values'][1], font = ('Arial', 15))
+            e1.insert(0, item['values'][1])
+            e2 = Entry(top, width = 30, text = item['values'][2], font = ('Arial', 15))
+            e2.insert(0, item['values'][2])
+            commit_button = Button(top, text='Commit Changes', command=lambda: [RecipeDatabase.add(e0.get(), e1.get(), e2.get()), self.delete_item()])
+            e0.pack()
+            e1.pack()
+            e2.pack()
+            commit_button.pack(pady=10)
     
     def select_item(self):
         for selected_item in self.tree.selection():
@@ -128,10 +145,8 @@ class RecipesWindow():
     def delete_item(self):
         for selected_item in self.tree.selection():
             item = self.tree.item(selected_item)
-            print(item)
             RecipeDatabase.delete_item(item['values'][0])
             self.tree.delete(selected_item)
-            return
 
 class RecipeDatabase():
         
@@ -222,6 +237,14 @@ class RecipeDatabase():
         conn = sqlite3.connect("recipe.db")
         cursor = conn.cursor()
         cursor.execute("DELETE FROM Recipe WHERE Name LIKE ?", ('%' + name,))
+        conn.commit()
+        conn.close()
+    
+    def add(name, ingredients, description):
+        conn = sqlite3.connect("recipe.db")
+        cursor = conn.cursor()
+        cursor.execute('''INSERT INTO Recipe (Name, Ingredients, Description) VALUES (?, ?, ?)''',
+                       (name, ingredients, description))
         conn.commit()
         conn.close()
 
