@@ -53,7 +53,9 @@ class EntryWindow:
         self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
         self.entry_description = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))     
         headline_categories = Label(self.master, text = "Choose the categorie", font = ('Arial', 15), bg = '#E0DFD5')
-        self.categories = ttk.Combobox(self.master, values=['','cake', 'bread', 'soup'], font = ('Arial', 15), width = 43)        
+        list_categories = ['cake', 'bread', 'soup']
+        self.categories = ttk.Combobox(self.master, values=list_categories, font = ('Arial', 15), width = 43)
+        RecipeDatabase.create_categories(list_categories)        
         
         headline.pack(pady=20)
         headline_name.pack()
@@ -80,7 +82,7 @@ class SearchWindow:
     def __init__(self, master, oldmaster):
         self.master = master
         self.headline = Label(self.master, text = 'Search for your recipe here', font = ('Arial', 20, 'underline'), bg = '#E0DFD5')
-        self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))
+        self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(EntryWindow(oldmaster)))
         self.search_button = Button(self.master, text='Search', width = 25, font = ('Arial', 15), command=lambda: [RecipeDatabase.name_output(self), RecipeDatabase.search_data(self)])
         self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
         
@@ -107,7 +109,6 @@ class RecipesWindow():
         self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))   
         self.quit_button.place(x = 395, y = 670)
         self.tree = ttk.Treeview(self.master, column=("c1"), show='tree', selectmode="browse")
-
         RecipeDatabase.recipe_output(self)
 
     def close_windows(self, oldmaster):
@@ -126,7 +127,7 @@ class RecipesWindow():
             e1.insert(0, item['values'][1])
             e2 = Entry(top, width = 30, text = item['values'][2], font = ('Arial', 15))
             e2.insert(0, item['values'][2])
-            commit_button = Button(top, text='Commit Changes', command=lambda: [RecipeDatabase.add(e0.get(), e1.get(), e2.get()), self.delete_item()])
+            commit_button = Button(top, text='Commit Changes', command=lambda: [RecipeDatabase.add(e0.get(), e1.get(), e2.get())])
             e0.pack()
             e1.pack()
             e2.pack()
@@ -149,7 +150,20 @@ class RecipesWindow():
             self.tree.delete(selected_item)
 
 class RecipeDatabase():
+    
+    def create_categories(categories):
+        conn = sqlite3.connect('recipe.db')
+        cursor = conn.cursor()
+        values = cursor.execute('''SELECT Name FROM Categorie''').fetchall()
         
+        if len(values) == 0:
+            for c in categories:
+                cursor.execute('''INSERT INTO Categorie (Name) VALUES
+                (?)''', ([c]))
+
+        conn.commit()
+        conn.close()
+            
     def store_data(self):
         name = self.entry_name.get()
         ingredients = self.entry_ingredients.get("1.0", END)
@@ -177,14 +191,10 @@ class RecipeDatabase():
         conn.execute(table_create_query)
         
         cursor = conn.cursor()
-        
-        cursor.execute('''INSERT INTO Categorie (Name) VALUES
-        (?)''', [categories])
-        categorie_id = cursor.lastrowid
-        
+        categorie_id = cursor.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
         
         cursor.execute('''INSERT INTO Recipe (Name, Ingredients, Description, Categorie_ID) VALUES (?, ?, ?, ?)''',
-                       (name, ingredients, description, categorie_id))
+                       (name, ingredients, description, str(categorie_id)))
         
         conn.commit()
         conn.close()
@@ -243,8 +253,7 @@ class RecipeDatabase():
     def add(name, ingredients, description):
         conn = sqlite3.connect("recipe.db")
         cursor = conn.cursor()
-        cursor.execute('''INSERT INTO Recipe (Name, Ingredients, Description) VALUES (?, ?, ?)''',
-                       (name, ingredients, description))
+        cursor.execute('''UPDATE Recipe SET Name=?, Ingredients=?, Description=?''', (name, ingredients, description))
         conn.commit()
         conn.close()
 
