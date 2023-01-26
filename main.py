@@ -82,7 +82,7 @@ class SearchWindow:
     def __init__(self, master, oldmaster):
         self.master = master
         self.headline = Label(self.master, text = 'Search for your recipe here', font = ('Arial', 20, 'underline'), bg = '#E0DFD5')
-        self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(EntryWindow(oldmaster)))
+        self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))
         self.search_button = Button(self.master, text='Search', width = 25, font = ('Arial', 15), command=lambda: [RecipeDatabase.name_output(self), RecipeDatabase.search_data(self)])
         self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
         
@@ -100,6 +100,13 @@ class RecipesWindow():
         self.master = master
         self.selected_items = []
         
+        list_categories = ['cake', 'bread', 'soup']
+        self.filter_option = ttk.Combobox(self.master, values=list_categories, font = ('Arial', 15), width = 10)
+        search_button = Button(self.master, text='Search', command=lambda:RecipeDatabase.filter_data(self), width=10, font = ('Arial', 15))
+        search_button.place(x = 670, y = 37)
+        reset_button = Button(self.master, text='Show all', command=lambda:RecipeDatabase.reset_search(self), width=10, font = ('Arial', 15))
+        reset_button.place(x = 130, y = 37)
+        self.filter_option.place(x = 805, y = 44)
         edit_button = Button(self.master, text='Edit Recipe', command=lambda:self.edit_item())
         edit_button.place(x = 620,y = 600)
         select_button = Button(self.master, text='Show Recipe', command=lambda:self.select_item())
@@ -142,7 +149,7 @@ class RecipesWindow():
             for j in range(len(record)):
                 e = Label(top, width = 30, text = record[j], font = ('Arial', 15))
                 e.pack()
-    
+
     def delete_item(self):
         for selected_item in self.tree.selection():
             item = self.tree.item(selected_item)
@@ -196,6 +203,34 @@ class RecipeDatabase():
         cursor.execute('''INSERT INTO Recipe (Name, Ingredients, Description, Categorie_ID) VALUES (?, ?, ?, ?)''',
                        (name, ingredients, description, str(categorie_id)))
         
+        conn.commit()
+        conn.close()
+    
+    def filter_data(self):
+        categories = self.filter_option.get()
+        self.tree.delete(*self.tree.get_children())
+        conn = sqlite3.connect('recipe.db')
+        conn_ = conn.cursor()
+        
+        id = conn_.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
+        search = conn_.execute('''SELECT Name, Ingredients, Description FROM Recipe WHERE Categorie_ID LIKE ?''', (str(id)))
+
+        for recipe in search:
+            self.tree.insert('', 'end', values=recipe)
+
+        conn.commit()
+        conn.close()
+    
+    def reset_search(self):
+        self.tree.delete(*self.tree.get_children())
+        conn = sqlite3.connect('recipe.db')
+        conn_ = conn.cursor()
+        
+        conn_.execute('''SELECT Name, Ingredients, Description FROM Recipe''')
+
+        for recipe in conn_:
+            self.tree.insert('', 'end', values=recipe)
+
         conn.commit()
         conn.close()
     
