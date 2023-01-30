@@ -49,14 +49,14 @@ class EntryWindow:
         headline_ingredients = Label(self.master, text = "Enter your ingredients", font = ('Arial', 15), bg = '#E0DFD5')
         headline_name = Label(self.master, text = "Enter your recipes name", font = ('Arial', 15), bg = '#E0DFD5')
         headline_description = Label(self.master, text = "Enter the description", font = ('Arial', 15), bg = '#E0DFD5')
-        self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:RecipeDatabase.store_data(self))
+        self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:[RecipeDatabase.store_data(self), self.refresh()])
         self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
         self.entry_description = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))     
         headline_categories = Label(self.master, text = "Choose the categorie", font = ('Arial', 15), bg = '#E0DFD5')
         list_categories = ['cake', 'bread', 'soup']
         self.categories = ttk.Combobox(self.master, values=list_categories, font = ('Arial', 15), width = 43)
-        RecipeDatabase.create_categories(list_categories)        
-        
+        RecipeDatabase.create_categories(list_categories)
+
         headline.pack(pady=20)
         headline_name.pack()
         self.entry_name.pack(pady=10)
@@ -68,6 +68,12 @@ class EntryWindow:
         self.categories.pack(pady=10)
         self.submit_button.pack(pady=20)
         self.quit_button.place(x = 395, y = 650)
+    
+    def refresh(self):
+        self.entry_name.delete(0, 'end')
+        self.entry_ingredients.delete('1.0', 'end')
+        self.entry_description.delete('1.0', 'end')
+        self.categories.delete(0, 'end')
 
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
@@ -83,7 +89,7 @@ class SearchWindow:
         self.master = master
         self.headline = Label(self.master, text = 'Search for your recipe here', font = ('Arial', 20, 'underline'), bg = '#E0DFD5')
         self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))
-        self.search_button = Button(self.master, text='Search', width = 25, font = ('Arial', 15), command=lambda: [RecipeDatabase.name_output(self), RecipeDatabase.search_data(self)])
+        self.search_button = Button(self.master, text='Search', width = 25, font = ('Arial', 15), command=lambda: [RecipeDatabase.name_output(self), RecipeDatabase.ingredients_output(self), RecipeDatabase.search_data(self)])
         self.entry_name = Entry(self.master, width = 43, font = ('Arial', 12))
         
         self.headline.pack(pady = 20)
@@ -125,16 +131,16 @@ class RecipesWindow():
     def edit_item(self):
         for selected_item in self.tree.selection():
             top = Toplevel(self.master)
-            top.geometry('750x250')
+            top.geometry('750x500')
             item = self.tree.item(selected_item)
 
             e0 = Entry(top, width = 30, text = item['values'][0], font = ('Arial', 15))
             e0.insert(0, item['values'][0])
-            e1 = Entry(top, width = 30, text = item['values'][1], font = ('Arial', 15))
-            e1.insert(0, item['values'][1])
-            e2 = Entry(top, width = 30, text = item['values'][2], font = ('Arial', 15))
-            e2.insert(0, item['values'][2])
-            commit_button = Button(top, text='Commit Changes', command=lambda: [RecipeDatabase.add(e0.get(), e1.get(), e2.get())])
+            e1 = scrolledtext.ScrolledText(top, width = 28, height=5, font = ('Arial', 15))
+            e1.insert('insert', item['values'][1])
+            e2 = scrolledtext.ScrolledText(top, width = 28, height=5, font = ('Arial', 15))
+            e2.insert('insert', item['values'][3:])
+            commit_button = Button(top, text='Commit Changes', command=lambda: [RecipeDatabase.add(e0.get(), e1.get("1.0",'end-1c')), RecipeDatabase.update_ingredients(e0.get(), e2.get("1.0",'end-1c'))])
             e0.pack()
             e1.pack()
             e2.pack()
@@ -170,11 +176,11 @@ class RecipeDatabase():
 
         conn.commit()
         conn.close()
-            
+
     def store_data(self):
         name = self.entry_name.get()
-        ingredients = self.entry_ingredients.get("1.0", END)
-        description = self.entry_description.get("1.0", END)
+        ingredients = self.entry_ingredients.get("1.0", 'end-1c')
+        description = self.entry_description.get("1.0", 'end-1c')
         categories = self.categories.get()
 
         if len(name) == 0:
@@ -188,20 +194,38 @@ class RecipeDatabase():
         
         table_create_categorie = '''CREATE TABLE IF NOT EXISTS Categorie 
             (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
+        table_create_ingredients = '''CREATE TABLE IF NOT EXISTS Ingredients 
+            (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
+        table_create_table = '''CREATE TABLE IF NOT EXISTS RecipeIngredients 
+            (ID INTEGER, Recipe_ID INTEGER, Ingredients_ID INTEGER, PRIMARY KEY("ID"),
+            CONSTRAINT "FK_Recipe" FOREIGN KEY("Recipe_ID") REFERENCES "Recipe"("ID"),
+            CONSTRAINT "FK_Ingredients" FOREIGN KEY("Ingredients_ID") REFERENCES "Ingredients"("ID"))'''
 
         table_create_query = '''CREATE TABLE IF NOT EXISTS Recipe 
-                    (ID INTEGER, Name TEXT NOT NULL, Ingredients TEXT NOT NULL, Description TEXT NOT NULL, Categorie_ID INTEGER,
+                    (ID INTEGER, Name TEXT NOT NULL, Description TEXT NOT NULL, Categorie_ID INTEGER,
                     PRIMARY KEY("ID"),
 	                CONSTRAINT "FK_Categorie" FOREIGN KEY("Categorie_ID") REFERENCES "Categorie"("ID"))'''
         
         conn.execute(table_create_categorie)
+        conn.execute(table_create_ingredients)
         conn.execute(table_create_query)
+        conn.execute(table_create_table)
         
         cursor = conn.cursor()
         categorie_id = cursor.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
+        cursor.execute('''INSERT INTO Recipe (Name, Description, Categorie_ID) VALUES (?, ?, ?)''',
+                        (name, description, str(categorie_id)))
         
-        cursor.execute('''INSERT INTO Recipe (Name, Ingredients, Description, Categorie_ID) VALUES (?, ?, ?, ?)''',
-                       (name, ingredients, description, str(categorie_id)))
+        recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
+        lines = ingredients.splitlines()
+        
+        for line in lines:
+            values = cursor.execute('''SELECT Name FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
+            if len(values) == 0:
+                cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
+            ingredients_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
+            cursor.execute('''INSERT INTO RecipeIngredients (Recipe_ID, Ingredients_ID) VALUES (?, ?)''',
+                            (str(recipe_id), str(ingredients_id)))
         
         conn.commit()
         conn.close()
@@ -213,7 +237,11 @@ class RecipeDatabase():
         conn_ = conn.cursor()
         
         id = conn_.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
-        search = conn_.execute('''SELECT Name, Ingredients, Description FROM Recipe WHERE Categorie_ID LIKE ?''', (str(id)))
+        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
+                            FROM Recipe r 
+                            JOIN Categorie c ON r.ID = c.ID 
+                            JOIN Ingredients i ON r.ID = i.ID
+                            WHERE Categorie_ID LIKE ? LIMIT 2''', (str(id)))
 
         for recipe in search:
             self.tree.insert('', 'end', values=recipe)
@@ -226,7 +254,10 @@ class RecipeDatabase():
         conn = sqlite3.connect('recipe.db')
         conn_ = conn.cursor()
         
-        conn_.execute('''SELECT Name, Ingredients, Description FROM Recipe''')
+        conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
+                        FROM Recipe r 
+                        JOIN Categorie c ON r.ID = c.ID 
+                        JOIN Ingredients i ON r.ID = i.ID''')
 
         for recipe in conn_:
             self.tree.insert('', 'end', values=recipe)
@@ -237,7 +268,26 @@ class RecipeDatabase():
     def search_data(self):
         conn = sqlite3.connect('recipe.db')
         conn_ = conn.cursor()
-        conn_.execute('SELECT Ingredients, Description FROM Recipe WHERE Name LIKE ?', ('%' + str(self.entry_name.get()),))
+        conn_.execute('''SELECT r.Description, c.Name as Categorie_name
+                        FROM Recipe r 
+                        JOIN Categorie c ON r.ID = c.ID 
+                        JOIN Ingredients i ON r.ID = i.ID
+                        WHERE r.Name LIKE ?''', ('%' + str(self.entry_name.get()),))
+        i = 0
+        for recipe in conn_:
+            for j in range(len(recipe)):
+                e = Label(self.master, width = 30, text = recipe[j], font = ('Arial', 15))
+                e.pack(pady = i + 5, padx = j)
+            i = i + 1
+            
+    def ingredients_output(self):
+        conn = sqlite3.connect('recipe.db')
+        conn_ = conn.cursor()
+        conn_.execute('''SELECT i.Name
+                        FROM RecipeIngredients x
+                        JOIN Recipe r ON x.Recipe_ID = r.ID
+                        JOIN Ingredients i ON x.Ingredients_ID = i.ID
+                        WHERE r.Name LIKE ?''', ('%' + str(self.entry_name.get()),))
         i = 0
         for recipe in conn_:
             for j in range(len(recipe)):
@@ -259,7 +309,12 @@ class RecipeDatabase():
     def recipe_output(self):
         conn = sqlite3.connect('recipe.db')
         conn_ = conn.cursor()
-        conn_.execute('SELECT Name, Ingredients, Description FROM Recipe')
+        
+        recipe_ = conn_.execute('''SELECT r.ID, r.Name, r.Description, c.Name as Categorie_name
+                        FROM Recipe r 
+                        JOIN Categorie c ON r.ID = c.ID 
+                        JOIN Ingredients i ON r.ID = i.ID''').fetchall()
+
         style= ttk.Style()
         style.theme_use('clam')
         style.configure('Treeview', rowheight = 40)
@@ -275,8 +330,19 @@ class RecipeDatabase():
         treeScroll.pack(side= RIGHT, fill = BOTH)
         self.tree.pack(pady=100)
 
-        for recipe in conn_:
-            self.tree.insert('', 'end', values=recipe)
+        for recipe in recipe_:
+            ingredients_ = conn_.execute('''SELECT i.Name
+                            FROM Ingredients i
+                            JOIN RecipeIngredients x ON i.ID = x.ID
+                            JOIN Recipe r ON x.Recipe_ID = r.ID
+                            WHERE r.ID = ?''', (str(recipe[0]),)).fetchall()
+
+            recipe_ingredients = ()
+            for ingredient in ingredients_:
+                recipe_ingredients += ingredient
+
+            display_recipe = recipe[1:] + recipe_ingredients
+            self.tree.insert('', 'end', values=display_recipe)
 
     def delete_item(name):
         conn = sqlite3.connect("recipe.db")
@@ -285,13 +351,27 @@ class RecipeDatabase():
         conn.commit()
         conn.close()
     
-    def add(name, ingredients, description):
+    def add(name, description):
         conn = sqlite3.connect("recipe.db")
         cursor = conn.cursor()
-        cursor.execute('''UPDATE Recipe SET Name=?, Ingredients=?, Description=?''', (name, ingredients, description))
+        cursor.execute('''UPDATE Recipe SET Name=?, Description=? WHERE Name LIKE ?''', (name, description, name))
         conn.commit()
         conn.close()
-
+    
+    def update_ingredients(name, ingredients):
+        conn = sqlite3.connect("recipe.db")
+        cursor = conn.cursor()
+        recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
+        lines = ingredients.splitlines()
+        
+        for line in lines:
+            cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
+            ingredients_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
+            cursor.execute('''INSERT INTO RecipeIngredients (Recipe_ID, Ingredients_ID) VALUES (?, ?)''',
+                            (str(recipe_id), str(ingredients_id)))
+        conn.commit()
+        conn.close()
+        
 def main(): 
     root = Tk(className="Cookbook")
     root.configure(bg = '#C6AD94')
