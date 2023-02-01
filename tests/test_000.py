@@ -9,30 +9,88 @@ except ModuleNotFoundError as e:
     logging.error("Module not found %s", e)
 
 
-def test_000_insert():
-    from recipe import EntryWindow
-    x = EntryWindow(master=None, oldmaster=None)
-    name = x.entry_name
-    ingredients = x.entry_ingredients
-    description = x.entry_description
+@pytest.fixture
+def setup_database():
+    conn = sqlite3.connect(':memory:')
+    cursor = conn.cursor()
     
-    conn = sqlite3.connect('recipe.db')
-    sql_insert = ('''INSERT INTO Recipe (Name, Ingredients, Description, Categorie_ID) VALUES (?, ?, ?, ?)''')
-    conn_ = conn.cursor()
+    name = 'Name'
+    ingredients = 'Ingredient'
+    description = 'This is a test recipe description'
+    categories = 'Test Category'
     
-    try:
-        affected_count = conn_.execute(sql_insert, (name, ingredients, description ))
-        conn.commit()
-        logging.warn("%d", affected_count)
-        logging.info("inserted values %s, %s, %s", name, ingredients, description)
-    except:
-        logging.warn("failed to insert values %s, %s, %s", name, ingredients, description)
-    finally:
-        conn_.close()
+    table_create_categorie = '''CREATE TABLE Categorie 
+        (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
+    table_create_ingredients = '''CREATE TABLE Ingredients 
+        (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
+    table_create_table = '''CREATE TABLE RecipeIngredients 
+        (ID INTEGER, Recipe_ID INTEGER, Ingredients_ID INTEGER, PRIMARY KEY("ID"),
+        CONSTRAINT "FK_Recipe" FOREIGN KEY("Recipe_ID") REFERENCES "Recipe"("ID"),
+        CONSTRAINT "FK_Ingredients" FOREIGN KEY("Ingredients_ID") REFERENCES "Ingredients"("ID"))'''
 
-def test_001_select():
-    conn = sqlite3.connect('recipe.db')
-    conn_ = conn.cursor()    
-    result = conn_.execute('''SELECT Name, Ingredients, Description FROM Recipe''')
+    table_create_query = '''CREATE TABLE Recipe 
+                (ID INTEGER, Name TEXT NOT NULL, Description TEXT NOT NULL, Categorie_ID INTEGER,
+                PRIMARY KEY("ID"),
+                CONSTRAINT "FK_Categorie" FOREIGN KEY("Categorie_ID") REFERENCES "Categorie"("ID"))'''
+
+    conn.execute(table_create_categorie)
+    conn.execute(table_create_ingredients)
+    conn.execute(table_create_query)
+    conn.execute(table_create_table)
+
+    categorie_id = cursor.execute('''INSERT INTO Categorie (Name) VALUES (?)''', (categories,)).fetchall()
+    cursor.execute('''INSERT INTO Recipe (Name, Description, Categorie_ID) VALUES (?, ?, ?)''',
+                    (name, description, str(categorie_id)))
+
+    recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()
+    lines = ingredients.splitlines()
+
+    for line in lines:
+        values = cursor.execute('''SELECT Name FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
+        if len(values) == 0:
+            cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
+        ingredients_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
+        cursor.execute('''INSERT INTO RecipeIngredients (Recipe_ID, Ingredients_ID) VALUES (?, ?)''',
+                        (str(recipe_id), str(ingredients_id)))
+    conn.commit()
+    yield conn
+
+def test_create_categories(setup_database):
+    categories = [('Test Category')]
     
-    assert len(result.fetchall()) > 0
+    conn = setup_database
+    cursor = conn.cursor()
+    result = cursor.execute('''SELECT Name FROM Categorie''').fetchall()
+    
+    result = [r[0] for r in result]
+
+    assert result == categories
+
+def test_create_recipe(setup_database):
+    recipe = [('Name', 'This is a test recipe description')]
+    
+    conn = setup_database
+    cursor = conn.cursor()
+    result = cursor.execute('''SELECT Name, Description FROM Recipe''').fetchall()
+    
+    result = [r for r in result]
+
+    assert result == recipe
+
+def test_create_ingredients(setup_database):
+    ingredients = [('Ingredient')]
+    
+    conn = setup_database
+    cursor = conn.cursor()
+    result = cursor.execute('''SELECT Name FROM Ingredients''').fetchall()
+    
+    result = [r[0] for r in result]
+
+    assert result == ingredients
+
+def test_connection(setup_database):
+    conn = setup_database
+    if conn:
+        conn.cursor()
+    else:
+        raise Exception("Failed to connect to the database")

@@ -49,7 +49,7 @@ class EntryWindow:
         headline_ingredients = Label(self.master, text = "Enter your ingredients", font = ('Arial', 15), bg = '#E0DFD5')
         headline_name = Label(self.master, text = "Enter your recipes name", font = ('Arial', 15), bg = '#E0DFD5')
         headline_description = Label(self.master, text = "Enter the description", font = ('Arial', 15), bg = '#E0DFD5')
-        self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:[RecipeDatabase.store_data(self), self.refresh()])
+        self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:[RecipeDatabase.store_data(self.entry_name.get(), self.entry_ingredients.get("1.0", 'end-1c'), self.entry_description.get("1.0", 'end-1c'), self.categories.get()), self.refresh()])
         self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
         self.entry_description = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))     
         headline_categories = Label(self.master, text = "Choose the categorie", font = ('Arial', 15), bg = '#E0DFD5')
@@ -139,7 +139,8 @@ class RecipesWindow():
             e1 = scrolledtext.ScrolledText(top, width = 28, height=5, font = ('Arial', 15))
             e1.insert('insert', item['values'][1])
             e2 = scrolledtext.ScrolledText(top, width = 28, height=5, font = ('Arial', 15))
-            e2.insert('insert', item['values'][3:])
+            for item in item['values'][3:]:
+                e2.insert('insert', item + '\n')
             commit_button = Button(top, text='Commit Changes', command=lambda: [RecipeDatabase.add(e0.get(), e1.get("1.0",'end-1c')), RecipeDatabase.update_ingredients(e0.get(), e2.get("1.0",'end-1c'))])
             e0.pack()
             e1.pack()
@@ -177,19 +178,14 @@ class RecipeDatabase():
         conn.commit()
         conn.close()
 
-    def store_data(self):
-        name = self.entry_name.get()
-        ingredients = self.entry_ingredients.get("1.0", 'end-1c')
-        description = self.entry_description.get("1.0", 'end-1c')
-        categories = self.categories.get()
-
+    def store_data(name, ingredients, description, categories):
+        
         if len(name) == 0:
             messagebox.showinfo('Error', 'Fill in the name space')
         elif len(ingredients) == 0:
             messagebox.showinfo('Error', 'Fill in the ingredients space')
         elif len(description) == 0:
             messagebox.showinfo('Error', 'Fill in the description space')
-        
         conn = sqlite3.connect('recipe.db')
         
         table_create_categorie = '''CREATE TABLE IF NOT EXISTS Categorie 
@@ -378,5 +374,6 @@ def main():
     root.geometry('1080x750')
     MainWindow(root)
     root.mainloop()
-
-main()
+    
+if __name__ == "__main__":
+    main()
