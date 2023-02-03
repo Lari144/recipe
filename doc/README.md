@@ -7,10 +7,7 @@ Aufgaben:
 - Datenbank erstellen - sqlite
 - GUI wo man den Rezeptnamen eingeben kann
 - neue GUI oder Abschnitt wo man das Rezept dann sieht
-<<<<<<< HEAD
 - Erste Abfrage ob man ein Rezept suchen oder eingeben möchte
-=======
 - Erste Abfrage ob man ein Rezept suchen oder eingeben möchte
 
-<img width="628" alt="image" src="https://user-images.githubusercontent.com/55692422/213668128-615f129f-3709-494b-bdb6-657b496e6d2f.png">
->>>>>>> 7561fdf5524cc0539e5de9a69984fbb39c0ede02
+<img width="677" alt="Screenshot_20230203_115918" src="https://user-images.githubusercontent.com/55692422/216587353-69dd332d-5dc0-4bbc-b2a1-ad8565315f61.png">
