@@ -10,12 +10,21 @@ except ModuleNotFoundError as e:
 
 
 @pytest.fixture
-def setup_database():
+def entry_name():
+    class Entry:
+        def __init__(self, name, ingredients, description):
+            self.entry_name = name
+            self.entry_ingredients = ingredients
+            self.entry_description = description
+    return Entry('Name', 'Ingredient', 'Description')
+
+@pytest.fixture
+def setup_database(entry_name):
     conn = sqlite3.connect(':memory:')
     cursor = conn.cursor()
     
-    name = 'Name'
-    ingredients = 'Ingredient'
+    name = entry_name.entry_name
+    ingredients = entry_name.entry_ingredients
     description = 'This is a test recipe description'
     categories = 'Test Category'
     
@@ -42,14 +51,14 @@ def setup_database():
     cursor.execute('''INSERT INTO Recipe (Name, Description, Categorie_ID) VALUES (?, ?, ?)''',
                     (name, description, str(categorie_id)))
 
-    recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()
+    recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
     lines = ingredients.splitlines()
 
     for line in lines:
         values = cursor.execute('''SELECT Name FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
         if len(values) == 0:
             cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
-        ingredients_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
+        ingredients_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
         cursor.execute('''INSERT INTO RecipeIngredients (Recipe_ID, Ingredients_ID) VALUES (?, ?)''',
                         (str(recipe_id), str(ingredients_id)))
     conn.commit()
@@ -88,6 +97,56 @@ def test_create_ingredients(setup_database):
 
     assert result == ingredients
 
+def test_create_recipe_ingredients(setup_database):
+    ingredients = [(1, 1,)]
+    
+    conn = setup_database
+    cursor = conn.cursor()
+    result = cursor.execute('''SELECT Recipe_ID, Ingredients_ID FROM RecipeIngredients''').fetchall()
+    
+    result = [r for r in result]
+
+    assert result == ingredients
+
+def test_search_name(entry_name, setup_database):
+    recipe.RecipeDatabase.conn = setup_database
+    x = recipe.RecipeDatabase
+    name = 'Name'
+    entry_name = entry_name.entry_name
+    
+    name_ = x.name_output(entry_name).fetchall()[0][0]
+
+    assert str(name_) == name
+
+def test_ingredients_search(entry_name, setup_database):
+    recipe.RecipeDatabase.conn = setup_database
+    x = recipe.RecipeDatabase
+    result = 'Ingredient'
+    entry_name = entry_name.entry_name
+    
+    name_ = x.ingredients_output(entry_name).fetchall()[0][0]
+
+    assert str(name_) == result
+
+def test_delete_item(entry_name, setup_database):
+    recipe.RecipeDatabase.conn = setup_database
+    x = recipe.RecipeDatabase
+    entry_name = entry_name.entry_name
+    
+    name_ = x.delete_item(entry_name)
+
+    assert str(name_) == str(None)
+
+def test_add_item(entry_name, setup_database):
+    recipe.RecipeDatabase.conn = setup_database
+    x = recipe.RecipeDatabase
+    entry_name = entry_name.entry_name
+    entry_desc = entry_name.entry_description
+    
+    name_ = x.add(entry_name, entry_desc)
+
+    assert str(name_) == str(None)
+ 
 def test_connection(setup_database):
     conn = setup_database
     if conn:
