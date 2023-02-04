@@ -147,7 +147,7 @@ class RecipesWindow():
         self.quit_button = Button(self.master, text = 'Quit', width = 25, font = ('Arial', 15), command = lambda:self.close_windows(oldmaster))   
         self.quit_button.place(x = 395, y = 670)
         self.tree = ttk.Treeview(self.master, column=("c1"), show='tree', selectmode="browse")
-        RecipeDatabase.recipe_output(self)
+        self.recipe_output()
 
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
@@ -158,7 +158,7 @@ class RecipesWindow():
             top = Toplevel(self.master)
             top.geometry('750x500')
             item = self.tree.item(selected_item)
-
+            name = Label(top, width = 30, text = RecipeDatabase.name_output(item['values'][0]).fetchall()[0][0], font = ('Arial', 20))
             e0 = Entry(top, width = 30, text = item['values'][0], font = ('Arial', 15))
             e0.insert(0, item['values'][0])
             e1 = scrolledtext.ScrolledText(top, width = 28, height=5, font = ('Arial', 15))
@@ -166,8 +166,8 @@ class RecipesWindow():
             e2 = scrolledtext.ScrolledText(top, width = 28, height=5, font = ('Arial', 15))
             for item in item['values'][3:]:
                 e2.insert('insert', item + '\n')
-            commit_button = Button(top, text='Commit Changes', command=lambda: [RecipeDatabase.add(e0.get(), e1.get("1.0",'end-1c')), RecipeDatabase.update_ingredients(e0.get(), e2.get("1.0",'end-1c'))])
-            e0.pack()
+            commit_button = Button(top, text='Commit Changes', command=lambda: RecipeDatabase.update_item(e0.get(), e2.get("1.0",'end-1c'), e1.get("1.0",'end-1c')))
+            name.pack(pady = 20)
             e1.pack()
             e2.pack()
             commit_button.pack(pady=10)
@@ -175,12 +175,23 @@ class RecipesWindow():
     def select_item(self):
         for selected_item in self.tree.selection():
             top = Toplevel(self.master)
-            top.geometry('750x250')
+            top.geometry('750x450')
+            top.grid_columnconfigure(0, weight=3)
+            top.grid_rowconfigure(0, weight=3)
+
+            text = Text(top, height=10, font=("Arial", 18), )
+            text.grid(row=0, column=0, sticky=EW)
+
+            scrollbar = ttk.Scrollbar(top, orient='vertical', command=text.yview)
+            scrollbar.grid(row=0, column=1, sticky=NS)
+            text.tag_configure("tag_name", justify='center')
+
+            text['yscrollcommand'] = scrollbar.set
             item = self.tree.item(selected_item)
             record = item['values']
             for j in range(len(record)):
-                e = Label(top, width = 30, text = record[j], font = ('Arial', 15))
-                e.pack()
+                text.insert(END, str(record[j])+ '\n')
+                text.tag_add("tag_name", "1.0", "end")
 
     def delete_item(self):
         for selected_item in self.tree.selection():
@@ -200,6 +211,24 @@ class RecipesWindow():
         
         for recipe in RecipeDatabase.reset_search(self):
             self.tree.insert('', 'end', values=recipe)
+    
+    def recipe_output(self):
+        style= ttk.Style()
+        style.theme_use('clam')
+        style.configure('Treeview', rowheight = 40)
+        
+        self.tree = ttk.Treeview(self.master, column=("c1"), show='headings', selectmode="browse")
+        self.tree.column("#1", anchor=CENTER, width=800)
+        self.tree.heading("#1", text="Recipes")
+        nametofont('TkHeadingFont').configure(size=20)
+        nametofont('TkDefaultFont').configure(size=16)
+        treeScroll = ttk.Scrollbar(self.master)
+        treeScroll.configure(command=self.tree.yview)
+        self.tree.configure(yscrollcommand=treeScroll.set)
+        treeScroll.pack(side= RIGHT, fill = BOTH)
+        self.tree.pack(pady=100)
+        
+        self.tree.insert('', 'end', values=RecipeDatabase.recipe_output())
         
 class RecipeDatabase():
     
@@ -284,7 +313,7 @@ class RecipeDatabase():
                         JOIN Categorie c ON r.ID = c.ID 
                         JOIN Ingredients i ON r.ID = i.ID''')
         return search
-    
+
     def search_data(name):
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
@@ -311,7 +340,7 @@ class RecipeDatabase():
         name_ = conn_.execute('SELECT Name FROM Recipe WHERE Name LIKE ?', (name,))
         return name_
 
-    def recipe_output(self):
+    def recipe_output():
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
         
@@ -319,21 +348,6 @@ class RecipeDatabase():
                         FROM Recipe r 
                         JOIN Categorie c ON r.ID = c.ID 
                         JOIN Ingredients i ON r.ID = i.ID''').fetchall()
-
-        style= ttk.Style()
-        style.theme_use('clam')
-        style.configure('Treeview', rowheight = 40)
-        
-        self.tree = ttk.Treeview(self.master, column=("c1"), show='headings', selectmode="browse")
-        self.tree.column("#1", anchor=CENTER, width=800)
-        self.tree.heading("#1", text="Recipes")
-        nametofont('TkHeadingFont').configure(size=20)
-        nametofont('TkDefaultFont').configure(size=16)
-        treeScroll = ttk.Scrollbar(self.master)
-        treeScroll.configure(command=self.tree.yview)
-        self.tree.configure(yscrollcommand=treeScroll.set)
-        treeScroll.pack(side= RIGHT, fill = BOTH)
-        self.tree.pack(pady=100)
 
         for recipe in recipe_:
             ingredients_ = conn_.execute('''SELECT i.Name
@@ -347,7 +361,7 @@ class RecipeDatabase():
                 recipe_ingredients += ingredient
 
             display_recipe = recipe[1:] + recipe_ingredients
-            self.tree.insert('', 'end', values=display_recipe)
+            return display_recipe
 
     def delete_item(name):
         conn = RecipeDatabase.conn
@@ -355,22 +369,23 @@ class RecipeDatabase():
         cursor.execute("DELETE FROM Recipe WHERE Name LIKE ?", ('%' + name,))
         conn.commit()
         
-    def add(name, description):
+    def update_item(name, ingredients, description):
         conn = RecipeDatabase.conn
         cursor = conn.cursor()
-        cursor.execute('''UPDATE Recipe SET Name=?, Description=? WHERE Name LIKE ?''', (name, description, name))
-    
-    def update_ingredients(name, ingredients):
-        conn = RecipeDatabase.conn
-        cursor = conn.cursor()
+        cursor.execute('''UPDATE Recipe SET Description=? WHERE Name LIKE ?''', (description, name))
         recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
         lines = ingredients.splitlines()
         
         for line in lines:
-            cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
-            ingredients_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
+            ingredient_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
+            if len(ingredient_id) == 0:
+                    cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
+                    ingredient_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
+            else:
+                    ingredient_id = ingredient_id[0][0]
+                    cursor.execute("UPDATE Ingredients SET Name=? WHERE ID=?", (line, ingredient_id))
             cursor.execute('''INSERT INTO RecipeIngredients (Recipe_ID, Ingredients_ID) VALUES (?, ?)''',
-                            (str(recipe_id), str(ingredients_id)))
+                            (str(recipe_id), str(ingredient_id)))
         conn.commit()
         
 def main(): 

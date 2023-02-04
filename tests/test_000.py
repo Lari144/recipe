@@ -12,11 +12,12 @@ except ModuleNotFoundError as e:
 @pytest.fixture
 def entry_name():
     class Entry:
-        def __init__(self, name, ingredients, description):
+        def __init__(self, name, ingredients, description, category):
             self.entry_name = name
             self.entry_ingredients = ingredients
             self.entry_description = description
-    return Entry('Name', 'Ingredient', 'Description')
+            self.entry_category = category
+    return Entry('Name', 'Ingredient', 'Description', 'Test Category')
 
 @pytest.fixture
 def setup_database(entry_name):
@@ -25,8 +26,8 @@ def setup_database(entry_name):
     
     name = entry_name.entry_name
     ingredients = entry_name.entry_ingredients
-    description = 'This is a test recipe description'
-    categories = 'Test Category'
+    description = entry_name.entry_description
+    categories = entry_name.entry_category
     
     table_create_categorie = '''CREATE TABLE Categorie 
         (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
@@ -76,7 +77,7 @@ def test_create_categories(setup_database):
     assert result == categories
 
 def test_create_recipe(setup_database):
-    recipe = [('Name', 'This is a test recipe description')]
+    recipe = [('Name', 'Description')]
     
     conn = setup_database
     cursor = conn.cursor()
@@ -137,16 +138,29 @@ def test_delete_item(entry_name, setup_database):
 
     assert str(name_) == str(None)
 
-def test_add_item(entry_name, setup_database):
+def test_update(entry_name, setup_database):
     recipe.RecipeDatabase.conn = setup_database
     x = recipe.RecipeDatabase
-    entry_name = entry_name.entry_name
-    entry_desc = entry_name.entry_description
+    name = entry_name.entry_name
+    desc = 'new description'
+    ing = 'new ingredient'
     
-    name_ = x.add(entry_name, entry_desc)
+    before = (entry_name.entry_description, entry_name.entry_ingredients)
+    result = x.update_item(name, ing, desc)
+    assert not (before == result)
 
-    assert str(name_) == str(None)
- 
+def test_recipe_output(entry_name, setup_database):
+    recipe.RecipeDatabase.conn = setup_database
+    x = recipe.RecipeDatabase
+    name = entry_name.entry_name
+    desc = entry_name.entry_description
+    ing = entry_name.entry_ingredients
+    cat = entry_name.entry_category
+    
+    result_expect = (name, desc, cat, ing)
+    result = x.recipe_output()
+    assert result_expect == result
+    
 def test_connection(setup_database):
     conn = setup_database
     if conn:
