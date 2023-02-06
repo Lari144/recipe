@@ -157,7 +157,7 @@ def test_recipe_output(entry_name, setup_database):
     ing = entry_name.entry_ingredients
     cat = entry_name.entry_category
     
-    result_expect = (name, desc, cat, ing)
+    result_expect = [(name, desc, cat, ing)]
     result = x.recipe_output()
     assert result_expect == result
     

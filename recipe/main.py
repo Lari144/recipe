@@ -228,8 +228,10 @@ class RecipesWindow():
         treeScroll.pack(side= RIGHT, fill = BOTH)
         self.tree.pack(pady=100)
         
-        self.tree.insert('', 'end', values=RecipeDatabase.recipe_output())
-        
+        recipes = RecipeDatabase.recipe_output()
+        for recipe in recipes:
+            self.tree.insert('', 'end', values=recipe)
+                             
 class RecipeDatabase():
     
     conn = sqlite3.connect('recipe.db')
@@ -349,6 +351,7 @@ class RecipeDatabase():
                         JOIN Categorie c ON r.ID = c.ID 
                         JOIN Ingredients i ON r.ID = i.ID''').fetchall()
 
+        result = []
         for recipe in recipe_:
             ingredients_ = conn_.execute('''SELECT i.Name
                             FROM Ingredients i
@@ -361,12 +364,17 @@ class RecipeDatabase():
                 recipe_ingredients += ingredient
 
             display_recipe = recipe[1:] + recipe_ingredients
-            return display_recipe
+            result.append(display_recipe)
+        return result
 
     def delete_item(name):
         conn = RecipeDatabase.conn
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM Recipe WHERE Name LIKE ?", ('%' + name,))
+        recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
+        ing_id = cursor.execute('''SELECT Ingredients_ID FROM RecipeIngredients WHERE Recipe_ID=?''', (recipe_id,)).fetchall()[0][0]
+        cursor.execute('''DELETE FROM Ingredients WHERE ID=?''', (str(ing_id),))
+        cursor.execute('''DELETE FROM RecipeIngredients WHERE Recipe_ID=?''', (recipe_id,))
+        cursor.execute('''DELETE FROM Recipe WHERE ID=?''', (recipe_id,))
         conn.commit()
         
     def update_item(name, ingredients, description):
@@ -374,16 +382,18 @@ class RecipeDatabase():
         cursor = conn.cursor()
         cursor.execute('''UPDATE Recipe SET Description=? WHERE Name LIKE ?''', (description, name))
         recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
+        ing_id = [row[0] for row in cursor.execute('''SELECT Ingredients_ID FROM RecipeIngredients WHERE Recipe_ID=?''', (recipe_id,)).fetchall()]
+        for id in ing_id:
+            cursor.execute('''DELETE FROM Ingredients WHERE ID LIKE ?''', (str(id),))
+            cursor.execute('''DELETE FROM RecipeIngredients WHERE Ingredients_ID LIKE ?''', (str(id),))
+
         lines = ingredients.splitlines()
-        
         for line in lines:
             ingredient_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
             if len(ingredient_id) == 0:
-                    cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
-                    ingredient_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
-            else:
-                    ingredient_id = ingredient_id[0][0]
-                    cursor.execute("UPDATE Ingredients SET Name=? WHERE ID=?", (line, ingredient_id))
+                cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
+                ingredient_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
+                
             cursor.execute('''INSERT INTO RecipeIngredients (Recipe_ID, Ingredients_ID) VALUES (?, ?)''',
                             (str(recipe_id), str(ingredient_id)))
         conn.commit()
