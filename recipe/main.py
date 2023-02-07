@@ -385,7 +385,10 @@ class RecipeDatabase():
         recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
         cursor.execute('''DELETE FROM RecipeIngredients WHERE Recipe_ID LIKE ?''', (str(recipe_id),))
         cursor.execute('''DELETE FROM Recipe WHERE ID LIKE ?''', (str(recipe_id),))
+        
+        search = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()
         conn.commit()
+        return search
         
     def update_item(name, ingredients, description):
         conn = RecipeDatabase.conn

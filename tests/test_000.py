@@ -136,7 +136,7 @@ def test_delete_item(entry_name, setup_database):
     
     name_ = x.delete_item(entry_name)
 
-    assert str(name_) == str(None)
+    assert str(name_) == str([])
 
 def test_update(entry_name, setup_database):
     recipe.RecipeDatabase.conn = setup_database
