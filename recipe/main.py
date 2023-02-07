@@ -397,11 +397,15 @@ class RecipeDatabase():
             cursor.execute('''DELETE FROM RecipeIngredients WHERE Ingredients_ID LIKE ?''', (str(id),))
         lines = ingredients.splitlines()
         for line in lines:
-            ingredient_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
-            cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
-            ingredient_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
+            ingredient = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()
+            if ingredient:
+                ingredient_id = ingredient[0][0]
+            else:
+                cursor.execute("INSERT INTO Ingredients (Name) VALUES (?)", (line,))
+                ingredient_id = cursor.execute('''SELECT ID FROM Ingredients WHERE Name LIKE ?''', (line,)).fetchall()[0][0]
             cursor.execute('''INSERT INTO RecipeIngredients (Recipe_ID, Ingredients_ID) VALUES (?, ?)''',
                             (str(recipe_id), str(ingredient_id)))
+        
         search = cursor.execute('''SELECT i.Name
                                         FROM RecipeIngredients x
                                         JOIN Recipe r ON x.Recipe_ID = r.ID
