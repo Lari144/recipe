@@ -1,6 +1,6 @@
-# User story Diätvorschriften
+# User story rezept löschen
 
-Als Person mit Ernährungseinschränkungen möchte ich in der Lage sein, Rezepte nach bestimmten Ernährungsbedürfnissen zu filtern, wie z. B. glutenfreie oder vegane Optionen
+Rezept wird ausgewält und dann aus der Datenbank gelöscht 
 
 ## Actors
 
@@ -8,12 +8,14 @@ Als Person mit Ernährungseinschränkungen möchte ich in der Lage sein, Rezepte
 
 ## Input
 
-Auswahl von Filter
+Name, Zutaten, Beschreibung, ....
 
 ## Output 
 
-Das passende Rezept mit Filter
+Daten aus der Datenbank gelöscht
 
 ## Errors
 
-* Das Rezept wird nicht gefunden bzw. existiert nicht in der Datenbank -> Error, dass es dieses Rezept nicht gibt
+* Eintrag kann nicht richtig ausgewählt werden
+* Eintrag ist nicht richtig mit den anderen Tables verknüpft - wird nicht richtig gelöscht
+* wird nur aus der Gui aber nicht aus der Datenbank gelöscht
