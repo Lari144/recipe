@@ -240,7 +240,7 @@ class RecipesWindow():
     def reset_items(self):
         self.tree.delete(*self.tree.get_children())
         
-        for recipe in RecipeDatabase.reset_search(self):
+        for recipe in RecipeDatabase.reset_search():
             self.tree.insert('', 'end', values=recipe)
     
     def recipe_output(self):
