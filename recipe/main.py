@@ -49,13 +49,17 @@ class EntryWindow:
         headline_ingredients = Label(self.master, text = "Enter your ingredients", font = ('Arial', 15), bg = '#E0DFD5')
         headline_name = Label(self.master, text = "Enter your recipes name", font = ('Arial', 15), bg = '#E0DFD5')
         headline_description = Label(self.master, text = "Enter the description", font = ('Arial', 15), bg = '#E0DFD5')
-        self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:[RecipeDatabase.store_data(self.entry_name.get(), self.entry_ingredients.get("1.0", 'end-1c'), self.entry_description.get("1.0", 'end-1c'), self.categories.get()), self.refresh()])
+        self.submit_button = Button(self.master, text = 'Submit', width = 25, font = ('Arial', 15), command=lambda:[RecipeDatabase.store_data(self.entry_name.get(), self.entry_ingredients.get("1.0", 'end-1c'), self.entry_description.get("1.0", 'end-1c'), self.categories.get(), self.times.get()), self.refresh()])
         self.entry_ingredients = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))
         self.entry_description = scrolledtext.ScrolledText(self.master, width = 43, height = 3, font = ('Arial', 12))     
         headline_categories = Label(self.master, text = "Choose the category", font = ('Arial', 15), bg = '#E0DFD5')
+        headline_times = Label(self.master, text = "Choose the preperation time", font = ('Arial', 15), bg = '#E0DFD5')
         list_categories = ['cake', 'bread', 'soup']
+        list_times = ['5 min', '10 min', '20 min', '30 min']
         self.categories = ttk.Combobox(self.master, values=list_categories, font = ('Arial', 15), width = 43)
+        self.times = ttk.Combobox(self.master, values=list_times, font = ('Arial', 15), width = 43)
         RecipeDatabase.create_categories(list_categories)
+        RecipeDatabase.create_times(list_times)
 
         headline.pack(pady=20)
         headline_name.pack()
@@ -66,6 +70,8 @@ class EntryWindow:
         self.entry_description.pack(pady=10)
         headline_categories.pack()
         self.categories.pack(pady=10)
+        headline_times.pack()
+        self.times.pack(pady=10)
         self.submit_button.pack(pady=20)
         self.quit_button.place(x = 395, y = 650)
     
@@ -74,6 +80,7 @@ class EntryWindow:
         self.entry_ingredients.delete('1.0', 'end')
         self.entry_description.delete('1.0', 'end')
         self.categories.delete(0, 'end')
+        self.times.delete(0, 'end')
 
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
@@ -143,13 +150,18 @@ class RecipesWindow():
         self.master = master
         self.selected_items = []
         
-        list_categories = ['cake', 'bread', 'soup']
+        list_categories = ['cake', 'bread', 'soup', 'juice']
+        list_times = ['5 min', '10 min', '20 min', '30 min']
         self.filter_option = ttk.Combobox(self.master, values=list_categories, font = ('Arial', 15), width = 10)
-        search_button = Button(self.master, text='Search', command=lambda:self.filter_items(), width=10, font = ('Arial', 15))
-        search_button.place(x = 670, y = 37)
+        self.filter_time_box = ttk.Combobox(self.master, values=list_times, font = ('Arial', 15), width = 10)
+        search_button = Button(self.master, text='Search Category', command=lambda:self.filter_items(), width=15, font = ('Arial', 15))
+        search_time = Button(self.master, text='Search Time', command=lambda:self.filter_time(), width=10, font = ('Arial', 15))
+        search_time.place(x = 350, y = 37)
+        search_button.place(x = 480, y = 37)
         reset_button = Button(self.master, text='Show all', command=lambda:self.reset_items(), width=10, font = ('Arial', 15))
         reset_button.place(x = 130, y = 37)
         self.filter_option.place(x = 805, y = 44)
+        self.filter_time_box.place(x = 670, y = 44)
         edit_button = Button(self.master, text='Edit Recipe', command=lambda:self.edit_item())
         edit_button.place(x = 620,y = 600)
         select_button = Button(self.master, text='Show Recipe', command=lambda:self.select_item())
@@ -218,6 +230,13 @@ class RecipesWindow():
         for recipe in RecipeDatabase.filter_data(categories):
             self.tree.insert('', 'end', values=recipe)
     
+    def filter_time(self):
+        time = self.filter_time_box.get()
+        self.tree.delete(*self.tree.get_children())
+        
+        for recipe in RecipeDatabase.filter_time(time):
+            self.tree.insert('', 'end', values=recipe)
+    
     def reset_items(self):
         self.tree.delete(*self.tree.get_children())
         
@@ -259,8 +278,20 @@ class RecipeDatabase():
                 (?)''', ([c]))
 
         conn.commit()
+    
+    def create_times(times):
+        conn = RecipeDatabase.conn
+        cursor = conn.cursor()
+        values = cursor.execute('''SELECT Name FROM Time''').fetchall()
+        
+        if len(values) == 0:
+            for t in times:
+                cursor.execute('''INSERT INTO Time (Name) VALUES
+                (?)''', ([t]))
 
-    def store_data(name, ingredients, description, categories):
+        conn.commit()
+
+    def store_data(name, ingredients, description, categories, time):
         
         if len(name) == 0:
             messagebox.showinfo('Error', 'Fill in the name space')
@@ -268,8 +299,11 @@ class RecipeDatabase():
             messagebox.showinfo('Error', 'Fill in the ingredients space')
         elif len(description) == 0:
             messagebox.showinfo('Error', 'Fill in the description space')
+        
         conn = sqlite3.connect('recipe.db')
         
+        table_create_times = '''CREATE TABLE IF NOT EXISTS Time
+            (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
         table_create_categorie = '''CREATE TABLE IF NOT EXISTS Categorie 
             (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
         table_create_ingredients = '''CREATE TABLE IF NOT EXISTS Ingredients 
@@ -280,19 +314,22 @@ class RecipeDatabase():
             CONSTRAINT "FK_Ingredients" FOREIGN KEY("Ingredients_ID") REFERENCES "Ingredients"("ID"))'''
 
         table_create_query = '''CREATE TABLE IF NOT EXISTS Recipe 
-                    (ID INTEGER, Name TEXT NOT NULL, Description TEXT NOT NULL, Categorie_ID INTEGER,
+                    (ID INTEGER, Name TEXT NOT NULL, Description TEXT NOT NULL, Categorie_ID INTEGER, Time_ID INTEGER,
                     PRIMARY KEY("ID"),
-	                CONSTRAINT "FK_Categorie" FOREIGN KEY("Categorie_ID") REFERENCES "Categorie"("ID"))'''
+	                CONSTRAINT "FK_Categorie" FOREIGN KEY("Categorie_ID") REFERENCES "Categorie"("ID"),
+                    CONSTRAINT "FK_Time" FOREIGN KEY("Time_ID") REFERENCES "Time"("ID"))'''
         
+        conn.execute(table_create_times)
         conn.execute(table_create_categorie)
         conn.execute(table_create_ingredients)
         conn.execute(table_create_query)
         conn.execute(table_create_table)
         
         cursor = conn.cursor()
+        time_id = cursor.execute('''SELECT ID FROM Time WHERE Name LIKE ?''', ([time])).fetchall()[0][0]
         categorie_id = cursor.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
-        cursor.execute('''INSERT INTO Recipe (Name, Description, Categorie_ID) VALUES (?, ?, ?)''',
-                        (name, description, str(categorie_id)))
+        cursor.execute('''INSERT INTO Recipe (Name, Description, Categorie_ID, Time_ID) VALUES (?, ?, ?, ?)''',
+                        (name, description, str(categorie_id), str(time_id)))
         
         recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
         lines = ingredients.splitlines()
@@ -311,30 +348,46 @@ class RecipeDatabase():
         conn_ = conn.cursor()
         
         id = conn_.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
-        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
+        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name, t.Name as Time_name
                             FROM Recipe r 
                             JOIN Categorie c ON r.ID = c.ID 
                             JOIN Ingredients i ON r.ID = i.ID
+                            JOIN Time t ON r.Time_ID = t.ID
                             WHERE Categorie_ID LIKE ?''', (str(id)))
         return search
     
-    def reset_search(self):
+    def filter_time(time):
+        conn = sqlite3.connect('recipe.db')
+        conn_ = conn.cursor()
+        
+        id = conn_.execute('''SELECT ID FROM Time WHERE Name LIKE ?''', ([time])).fetchall()[0][0]
+        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name, t.Name as Time_name
+                            FROM Recipe r 
+                            JOIN Categorie c ON r.ID = c.ID 
+                            JOIN Ingredients i ON r.ID = i.ID
+                            JOIN Time t ON r.Time_ID = t.ID
+                            WHERE Time_ID LIKE ?''', (str(id)))
+        return search
+    
+    def reset_search():
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
         
-        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
+        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name, t.Name as Time_name
                         FROM Recipe r 
-                        JOIN Categorie c ON r.ID = c.ID 
-                        JOIN Ingredients i ON r.ID = i.ID''')
+                        JOIN Categorie c ON r.Categorie_ID = c.ID 
+                        JOIN Ingredients i ON r.ID = i.ID
+                        JOIN Time t ON r.Time_ID = t.ID''')
         return search
 
     def search_data(name):
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
-        search = conn_.execute('''SELECT r.Description, c.Name as Categorie_name
+        search = conn_.execute('''SELECT r.Description, c.Name as Categorie_name, t.Name as Time_name
                         FROM Recipe r 
-                        JOIN Categorie c ON r.ID = c.ID 
+                        JOIN Categorie c ON r.Categorie_ID = c.ID 
                         JOIN Ingredients i ON r.ID = i.ID
+                        JOIN Time t ON r.Time_ID = t.ID
                         WHERE r.Name LIKE ?''', ('%' + str(name),))
         return search
 
@@ -358,9 +411,8 @@ class RecipeDatabase():
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
         
-        recipe_ = conn_.execute('''SELECT r.ID, r.Name, r.Description, c.Name as Categorie_name
-                        FROM Recipe r 
-                        JOIN Categorie c ON r.ID = c.ID 
+        recipe_ = conn_.execute('''SELECT r.ID, r.Name, r.Description
+                        FROM Recipe r
                         JOIN Ingredients i ON r.ID = i.ID''').fetchall()
 
         result = []

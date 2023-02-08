@@ -1,6 +1,6 @@
-# User story Zeit-Filter
+# User story rezept ändern
 
-Als vielbeschäftigte Person möchte ich in der Lage sein, schnelle und einfache Rezepte zu finden, die ich in weniger als 30 Minuten zubereiten kann.
+Rezept wird ausgewählt und dann enstsprechen geändert
 
 ## Actors
 
@@ -8,12 +8,12 @@ Als vielbeschäftigte Person möchte ich in der Lage sein, schnelle und einfache
 
 ## Input
 
-Auswahl von Zeiten
+Zutaten, Beschreibung
 
 ## Output 
 
-Das passende Rezept in der gegeben Zeit
+Daten werden in der Datenbank geändert
 
 ## Errors
 
-* Das Rezept wird nicht gefunden bzw. existiert nicht in der Datenbank | Kein Rezept in der vorgebenen Zeit -> Error, dass es dieses Rezept nicht gibt
+* Wenn nicht richtig ausgewählt, kann beim ändern einer Zutat, eine Zutat bei einem anderem Rezept auch geändert werden

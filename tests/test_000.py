@@ -12,12 +12,13 @@ except ModuleNotFoundError as e:
 @pytest.fixture
 def entry_name():
     class Entry:
-        def __init__(self, name, ingredients, description, category):
+        def __init__(self, name, ingredients, description, category, time):
             self.entry_name = name
             self.entry_ingredients = ingredients
             self.entry_description = description
             self.entry_category = category
-    return Entry('Name', 'Ingredient', 'Description', 'Test Category')
+            self.entry_time = time
+    return Entry('Name', 'Ingredient', 'Description', 'Test Category', 'Test Time')
 
 @pytest.fixture
 def setup_database(entry_name):
@@ -28,7 +29,10 @@ def setup_database(entry_name):
     ingredients = entry_name.entry_ingredients
     description = entry_name.entry_description
     categories = entry_name.entry_category
+    time = entry_name.entry_time
     
+    table_create_times = '''CREATE TABLE Time
+            (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
     table_create_categorie = '''CREATE TABLE Categorie 
         (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
     table_create_ingredients = '''CREATE TABLE Ingredients 
@@ -39,19 +43,21 @@ def setup_database(entry_name):
         CONSTRAINT "FK_Ingredients" FOREIGN KEY("Ingredients_ID") REFERENCES "Ingredients"("ID"))'''
 
     table_create_query = '''CREATE TABLE Recipe 
-                (ID INTEGER, Name TEXT NOT NULL, Description TEXT NOT NULL, Categorie_ID INTEGER,
+                (ID INTEGER, Name TEXT NOT NULL, Description TEXT NOT NULL, Categorie_ID INTEGER, Time_ID INTEGER,
                 PRIMARY KEY("ID"),
-                CONSTRAINT "FK_Categorie" FOREIGN KEY("Categorie_ID") REFERENCES "Categorie"("ID"))'''
+                CONSTRAINT "FK_Categorie" FOREIGN KEY("Categorie_ID") REFERENCES "Categorie"("ID")
+                CONSTRAINT "FK_Time" FOREIGN KEY("Time_ID") REFERENCES "Time"("ID"))'''
 
+    conn.execute(table_create_times)
     conn.execute(table_create_categorie)
     conn.execute(table_create_ingredients)
-    conn.execute(table_create_query)
     conn.execute(table_create_table)
+    conn.execute(table_create_query)
 
-    categorie_id = cursor.execute('''INSERT INTO Categorie (Name) VALUES (?)''', (categories,)).fetchall()
-    cursor.execute('''INSERT INTO Recipe (Name, Description, Categorie_ID) VALUES (?, ?, ?)''',
-                    (name, description, str(categorie_id)))
-
+    time_id = cursor.execute('''INSERT INTO Time (Name) VALUES (?)''', (time,))
+    categorie_id = cursor.execute('''INSERT INTO Categorie (Name) VALUES (?)''', (categories,))
+    cursor.execute('''INSERT INTO Recipe (Name, Description, Categorie_ID, Time_ID) VALUES (?, ?, ?, ?)''',
+                    (name, description, str(categorie_id), str(time_id)))
     recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
     lines = ingredients.splitlines()
 
@@ -76,6 +82,17 @@ def test_create_categories(setup_database):
 
     assert result == categories
 
+def test_create_time(setup_database):
+    categories = [('Test Time')]
+    
+    conn = setup_database
+    cursor = conn.cursor()
+    result = cursor.execute('''SELECT Name FROM Time''').fetchall()
+    
+    result = [r[0] for r in result]
+
+    assert result == categories
+    
 def test_create_recipe(setup_database):
     recipe = [('Name', 'Description')]
     
@@ -155,9 +172,8 @@ def test_recipe_output(entry_name, setup_database):
     name = entry_name.entry_name
     desc = entry_name.entry_description
     ing = entry_name.entry_ingredients
-    cat = entry_name.entry_category
     
-    result_expect = [(name, desc, cat, ing)]
+    result_expect = [(name, desc, ing)]
     result = x.recipe_output()
     assert result_expect == result
     

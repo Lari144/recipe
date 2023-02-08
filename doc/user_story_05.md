@@ -1,6 +1,6 @@
-# User story Favoriten
+# User story Zeit-Filter
 
-Als Rezeptsammler möchte ich meine Lieblingsrezepte speichern, damit ich beim Kochen jederzeit darauf zugreifen und nachschlagen kann.
+Als vielbeschäftigte Person möchte ich in der Lage sein, schnelle und einfache Rezepte zu finden, die ich in weniger als 30 Minuten zubereiten kann.
 
 ## Actors
 
@@ -8,12 +8,12 @@ Als Rezeptsammler möchte ich meine Lieblingsrezepte speichern, damit ich beim K
 
 ## Input
 
-Bestimmtes Rezept markieren
+Auswahl von Zeiten
 
 ## Output 
 
-Alle Rezepte auf einer eigenen Seite, die markiert worden sind, anzeigen lassen
+Das passende Rezept in der gegeben Zeit
 
 ## Errors
 
-* Das Rezept wird nicht richtig angezeigt - bzw man hat kein Zugriff mehr drauf
+* Das Rezept wird nicht gefunden bzw. existiert nicht in der Datenbank | Kein Rezept in der vorgebenen Zeit -> Error, dass es dieses Rezept nicht gibt

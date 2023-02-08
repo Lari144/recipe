@@ -1,6 +1,6 @@
 # User story rezept eingabe
 
-Rezept sollte eingeben und dann in die Datenbank gespeichert werden
+Rezept wird eingegeben und dann in die Datenbank gespeichert
 
 ## Actors
 
