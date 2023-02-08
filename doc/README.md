@@ -10,4 +10,5 @@ Aufgaben:
 - Erste Abfrage ob man ein Rezept suchen oder eingeben möchte
 - Erste Abfrage ob man ein Rezept suchen oder eingeben möchte
 
-<img width="677" alt="Screenshot_20230203_115918" src="https://user-images.githubusercontent.com/55692422/216587353-69dd332d-5dc0-4bbc-b2a1-ad8565315f61.png">
+
+<img width="677" alt="Screenshot_20230208_040922" src="https://user-images.githubusercontent.com/55692422/217569406-2cabe58f-3bae-42f1-8856-1c00acc54b33.png">
