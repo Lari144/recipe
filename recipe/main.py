@@ -85,11 +85,6 @@ class EntryWindow:
     def close_windows(self, oldmaster):
         oldmaster.deiconify()
         self.master.destroy()
-    
-    def get_input(self):
-        self.entry_name.get()
-        self.entry_ingredients.get()
-        self.entry_description.get()
         
 class SearchWindow:
     def __init__(self, master, oldmaster):
@@ -348,11 +343,10 @@ class RecipeDatabase():
         conn_ = conn.cursor()
         
         id = conn_.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
-        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name, t.Name as Time_name
+        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
                             FROM Recipe r 
-                            JOIN Categorie c ON r.ID = c.ID 
+                            JOIN Categorie c ON r.Categorie_ID = c.ID 
                             JOIN Ingredients i ON r.ID = i.ID
-                            JOIN Time t ON r.Time_ID = t.ID
                             WHERE Categorie_ID LIKE ?''', (str(id)))
         return search
     
@@ -361,9 +355,9 @@ class RecipeDatabase():
         conn_ = conn.cursor()
         
         id = conn_.execute('''SELECT ID FROM Time WHERE Name LIKE ?''', ([time])).fetchall()[0][0]
-        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name, t.Name as Time_name
+        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
                             FROM Recipe r 
-                            JOIN Categorie c ON r.ID = c.ID 
+                            JOIN Categorie c ON r.Categorie_ID = c.ID 
                             JOIN Ingredients i ON r.ID = i.ID
                             JOIN Time t ON r.Time_ID = t.ID
                             WHERE Time_ID LIKE ?''', (str(id)))
@@ -373,7 +367,7 @@ class RecipeDatabase():
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
         
-        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name, t.Name as Time_name
+        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
                         FROM Recipe r 
                         JOIN Categorie c ON r.Categorie_ID = c.ID 
                         JOIN Ingredients i ON r.ID = i.ID
@@ -383,7 +377,7 @@ class RecipeDatabase():
     def search_data(name):
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
-        search = conn_.execute('''SELECT r.Description, c.Name as Categorie_name, t.Name as Time_name
+        search = conn_.execute('''SELECT r.Description, c.Name as Categorie_name
                         FROM Recipe r 
                         JOIN Categorie c ON r.Categorie_ID = c.ID 
                         JOIN Ingredients i ON r.ID = i.ID
