@@ -300,7 +300,7 @@ class RecipeDatabase():
         elif len(description) == 0:
             messagebox.showinfo('Error', 'Fill in the description space')
         
-        conn = sqlite3.connect('recipe.db')
+        conn = RecipeDatabase.conn
         
         table_create_times = '''CREATE TABLE IF NOT EXISTS Time
             (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
@@ -344,7 +344,7 @@ class RecipeDatabase():
         conn.commit()
     
     def filter_data(categories):
-        conn = sqlite3.connect('recipe.db')
+        conn = RecipeDatabase.conn
         conn_ = conn.cursor()
         
         id = conn_.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
@@ -357,7 +357,7 @@ class RecipeDatabase():
         return search
     
     def filter_time(time):
-        conn = sqlite3.connect('recipe.db')
+        conn = RecipeDatabase.conn
         conn_ = conn.cursor()
         
         id = conn_.execute('''SELECT ID FROM Time WHERE Name LIKE ?''', ([time])).fetchall()[0][0]
