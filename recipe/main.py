@@ -145,7 +145,7 @@ class RecipesWindow():
         self.master = master
         self.selected_items = []
         
-        list_categories = ['cake', 'bread', 'soup', 'juice']
+        list_categories = ['cake', 'bread', 'soup']
         list_times = ['5 min', '10 min', '20 min', '30 min']
         self.filter_option = ttk.Combobox(self.master, values=list_categories, font = ('Arial', 15), width = 10)
         self.filter_time_box = ttk.Combobox(self.master, values=list_times, font = ('Arial', 15), width = 10)
@@ -183,7 +183,7 @@ class RecipesWindow():
             e1 = scrolledtext.ScrolledText(top, width = 28, height=5, font = ('Arial', 15))
             e1.insert('insert', item['values'][1])
             e2 = scrolledtext.ScrolledText(top, width = 28, height=5, font = ('Arial', 15))
-            for item in item['values'][3:]:
+            for item in item['values'][2:]:
                 e2.insert('insert', item + '\n')
             commit_button = Button(top, text='Commit Changes', command=lambda: RecipeDatabase.update_item(e0.get(), e2.get("1.0",'end-1c'), e1.get("1.0",'end-1c')))
             name.pack(pady = 20)
@@ -235,7 +235,7 @@ class RecipesWindow():
     def reset_items(self):
         self.tree.delete(*self.tree.get_children())
         
-        for recipe in RecipeDatabase.reset_search():
+        for recipe in RecipeDatabase.recipe_output():
             self.tree.insert('', 'end', values=recipe)
     
     def recipe_output(self):
@@ -294,6 +294,8 @@ class RecipeDatabase():
             messagebox.showinfo('Error', 'Fill in the ingredients space')
         elif len(description) == 0:
             messagebox.showinfo('Error', 'Fill in the description space')
+        elif len(time) == 0:
+            messagebox.showinfo('Error', 'Fill in the description space')
         
         conn = RecipeDatabase.conn
         
@@ -343,41 +345,61 @@ class RecipeDatabase():
         conn_ = conn.cursor()
         
         id = conn_.execute('''SELECT ID FROM Categorie WHERE Name LIKE ?''', ([categories])).fetchall()[0][0]
-        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
-                            FROM Recipe r 
-                            JOIN Categorie c ON r.Categorie_ID = c.ID 
-                            JOIN Ingredients i ON r.ID = i.ID
-                            WHERE Categorie_ID LIKE ?''', (str(id)))
-        return search
+
+        recipe_ = conn_.execute('''SELECT r.ID, r.Name, r.Description, c.Name
+                        FROM Recipe r
+                        JOIN Categorie c ON r.Categorie_ID = c.ID 
+                        JOIN Ingredients i ON r.ID = i.ID
+                        WHERE Categorie_ID LIKE ?''', (str(id))).fetchall()
+
+        result = []
+        for recipe in recipe_:
+            ingredients_ = conn_.execute('''SELECT i.Name
+                                FROM RecipeIngredients x
+                                JOIN Recipe r ON x.Recipe_ID = r.ID
+                                JOIN Ingredients i ON x.Ingredients_ID = i.ID
+                                WHERE r.ID LIKE ?''', (str(recipe[0]),)).fetchall()
+
+            recipe_ingredients = ()
+            for ingredient in ingredients_:
+                recipe_ingredients += ingredient
+
+            display_recipe = recipe[1:] + recipe_ingredients
+            result.append(display_recipe)
+        return result
     
     def filter_time(time):
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
         
         id = conn_.execute('''SELECT ID FROM Time WHERE Name LIKE ?''', ([time])).fetchall()[0][0]
-        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
-                            FROM Recipe r 
-                            JOIN Categorie c ON r.Categorie_ID = c.ID 
-                            JOIN Ingredients i ON r.ID = i.ID
-                            JOIN Time t ON r.Time_ID = t.ID
-                            WHERE Time_ID LIKE ?''', (str(id)))
-        return search
-    
-    def reset_search():
-        conn = RecipeDatabase.conn
-        conn_ = conn.cursor()
         
-        search = conn_.execute('''SELECT r.Name, i.Name as Ingredients_name, r.Description, c.Name as Categorie_name
-                        FROM Recipe r 
+        recipe_ = conn_.execute('''SELECT r.ID, r.Name, r.Description, c.Name
+                        FROM Recipe r
                         JOIN Categorie c ON r.Categorie_ID = c.ID 
                         JOIN Ingredients i ON r.ID = i.ID
-                        JOIN Time t ON r.Time_ID = t.ID''')
-        return search
+                        WHERE Time_ID LIKE ?''', (str(id))).fetchall()
+
+        result = []
+        for recipe in recipe_:
+            ingredients_ = conn_.execute('''SELECT i.Name
+                                FROM RecipeIngredients x
+                                JOIN Recipe r ON x.Recipe_ID = r.ID
+                                JOIN Ingredients i ON x.Ingredients_ID = i.ID
+                                WHERE r.ID LIKE ?''', (str(recipe[0]),)).fetchall()
+
+            recipe_ingredients = ()
+            for ingredient in ingredients_:
+                recipe_ingredients += ingredient
+
+            display_recipe = recipe[1:] + recipe_ingredients
+            result.append(display_recipe)
+        return result
 
     def search_data(name):
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
-        search = conn_.execute('''SELECT r.Description, c.Name as Categorie_name
+        search = conn_.execute('''SELECT r.Description, c.Name as Categorie_name, t.Name
                         FROM Recipe r 
                         JOIN Categorie c ON r.Categorie_ID = c.ID 
                         JOIN Ingredients i ON r.ID = i.ID
@@ -463,7 +485,7 @@ class RecipeDatabase():
         conn.commit()
         return search
         
-def main(): 
+def main():
     root = Tk(className="Cookbook")
     root.configure(bg = '#C6AD94')
     root.geometry('1080x750')
