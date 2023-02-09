@@ -10,7 +10,7 @@ except ModuleNotFoundError as e:
 
 
 @pytest.fixture
-def entry_name():
+def entry():
     class Entry:
         def __init__(self, name, ingredients, description, category, time):
             self.entry_name = name
@@ -21,15 +21,15 @@ def entry_name():
     return Entry('Name', 'Ingredient', 'Description', 'Test Category', 'Test Time')
 
 @pytest.fixture
-def setup_database(entry_name):
+def setup_database(entry):
     conn = sqlite3.connect(':memory:')
     cursor = conn.cursor()
     
-    name = entry_name.entry_name
-    ingredients = entry_name.entry_ingredients
-    description = entry_name.entry_description
-    categories = entry_name.entry_category
-    time = entry_name.entry_time
+    name = entry.entry_name
+    ingredients = entry.entry_ingredients
+    description = entry.entry_description
+    categories = entry.entry_category
+    time = entry.entry_time
     
     table_create_times = '''CREATE TABLE Time
             (ID INTEGER, Name TEXT, PRIMARY KEY("ID"))'''
@@ -54,8 +54,10 @@ def setup_database(entry_name):
     conn.execute(table_create_table)
     conn.execute(table_create_query)
 
-    time_id = cursor.execute('''INSERT INTO Time (Name) VALUES (?)''', (time,))
-    categorie_id = cursor.execute('''INSERT INTO Categorie (Name) VALUES (?)''', (categories,))
+    cursor.execute('''INSERT INTO Time (Name) VALUES (?)''', (time,))
+    time_id = cursor.execute('''SELECT ID FROM Time WHERE Name LIKE 'Test Time' ''').fetchall()[0][0]
+    cursor.execute('''INSERT INTO Categorie (Name) VALUES (?)''', (categories,))
+    categorie_id = cursor.execute('''SELECT ID FROM Categorie WHERE Name LIKE 'Test Category' ''').fetchall()[0][0]
     cursor.execute('''INSERT INTO Recipe (Name, Description, Categorie_ID, Time_ID) VALUES (?, ?, ?, ?)''',
                     (name, description, str(categorie_id), str(time_id)))
     recipe_id = cursor.execute('''SELECT ID FROM Recipe WHERE Name LIKE ?''', (name,)).fetchall()[0][0]
@@ -72,6 +74,8 @@ def setup_database(entry_name):
     yield conn
 
 def test_create_categories(setup_database):
+    '''Method for testing if category was inserted correctly'''
+    
     categories = [('Test Category')]
     
     conn = setup_database
@@ -83,6 +87,8 @@ def test_create_categories(setup_database):
     assert result == categories
 
 def test_create_time(setup_database):
+    '''Method for testing if time was inserted correctly'''
+    
     categories = [('Test Time')]
     
     conn = setup_database
@@ -94,6 +100,8 @@ def test_create_time(setup_database):
     assert result == categories
     
 def test_create_recipe(setup_database):
+    '''Method for testing if recipe was inserted correctly'''
+    
     recipe = [('Name', 'Description')]
     
     conn = setup_database
@@ -105,6 +113,8 @@ def test_create_recipe(setup_database):
     assert result == recipe
 
 def test_create_ingredients(setup_database):
+    '''Method for testing if ingredient was inserted correctly'''
+    
     ingredients = [('Ingredient')]
     
     conn = setup_database
@@ -116,6 +126,8 @@ def test_create_ingredients(setup_database):
     assert result == ingredients
 
 def test_create_recipe_ingredients(setup_database):
+    '''Method for testing if ingredient was inserted correctly'''
+    
     ingredients = [(1, 1,)]
     
     conn = setup_database
@@ -126,58 +138,100 @@ def test_create_recipe_ingredients(setup_database):
 
     assert result == ingredients
 
-def test_search_name(entry_name, setup_database):
+def test_search_name(entry, setup_database):
+    '''Method for testing if name_output is searching correctly'''
+    
     recipe.RecipeDatabase.conn = setup_database
     x = recipe.RecipeDatabase
     name = 'Name'
-    entry_name = entry_name.entry_name
+    entry_name = entry.entry_name
     
     name_ = x.name_output(entry_name).fetchall()[0][0]
 
     assert str(name_) == name
 
-def test_ingredients_search(entry_name, setup_database):
+def test_ingredients_search(entry, setup_database):
+    '''Method for testing if ingredient_output is searching correctly'''
     recipe.RecipeDatabase.conn = setup_database
     x = recipe.RecipeDatabase
     result = 'Ingredient'
-    entry_name = entry_name.entry_name
+    entry_name = entry.entry_name
     
     name_ = x.ingredients_output(entry_name).fetchall()[0][0]
 
     assert str(name_) == result
 
-def test_delete_item(entry_name, setup_database):
+def test_delete_item(entry, setup_database):
+    '''Method for testing if deleting is done correctly'''
+
     recipe.RecipeDatabase.conn = setup_database
     x = recipe.RecipeDatabase
-    entry_name = entry_name.entry_name
+    entry_name = entry.entry_name
     
     name_ = x.delete_item(entry_name)
 
     assert str(name_) == str([])
 
-def test_update(entry_name, setup_database):
+def test_update(entry, setup_database):
+    '''Method for testing if update is done correctly'''
+
     recipe.RecipeDatabase.conn = setup_database
     x = recipe.RecipeDatabase
-    name = entry_name.entry_name
+    name = entry.entry_name
     desc = 'new description'
     ing = 'new ingredient'
     
-    before = (entry_name.entry_description, entry_name.entry_ingredients)
+    before = (entry.entry_description, entry.entry_ingredients)
     result = x.update_item(name, ing, desc)
     assert not (before == result)
 
-def test_recipe_output(entry_name, setup_database):
+def test_recipe_output(entry, setup_database):
+    '''Method for testing if recipe_output is searching correctly'''
+
     recipe.RecipeDatabase.conn = setup_database
     x = recipe.RecipeDatabase
-    name = entry_name.entry_name
-    desc = entry_name.entry_description
-    ing = entry_name.entry_ingredients
+    name = entry.entry_name
+    desc = entry.entry_description
+    ing = entry.entry_ingredients
     
     result_expect = [(name, desc, ing)]
     result = x.recipe_output()
     assert result_expect == result
+
+def test_filter_data(entry, setup_database):
+    '''Method for testing if filter_data is done correctly'''
+
+    recipe.RecipeDatabase.conn = setup_database
+    x = recipe.RecipeDatabase
+    
+    name = entry.entry_name
+    desc = entry.entry_description
+    cat = entry.entry_category
+    ing = entry.entry_ingredients
+    
+    result_expect = [(name, desc, cat, ing)]
+    result = x.filter_data(cat)
+    assert result_expect == result
+
+def test_filter_time(entry, setup_database):
+    '''Method for testing if filter_time is done correctly'''
+
+    recipe.RecipeDatabase.conn = setup_database
+    x = recipe.RecipeDatabase
+    
+    name = entry.entry_name
+    desc = entry.entry_description
+    cat = entry.entry_category
+    ing = entry.entry_ingredients
+    time = entry.entry_time
+    
+    result_expect = [(name, desc, cat, ing)]
+    result = x.filter_time(time)
+    assert result_expect == result
     
 def test_connection(setup_database):
+    '''Method for testing if connection to database is working'''
+
     conn = setup_database
     if conn:
         conn.cursor()

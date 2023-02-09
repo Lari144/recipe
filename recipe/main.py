@@ -187,7 +187,11 @@ class RecipesWindow():
                 e2.insert('insert', item + '\n')
             commit_button = Button(top, text='Commit Changes', command=lambda: RecipeDatabase.update_item(e0.get(), e2.get("1.0",'end-1c'), e1.get("1.0",'end-1c')))
             name.pack(pady = 20)
+            headline_desc = Label(top, width = 30, text = 'Edit Description', font = ('Arial', 15))
+            headline_ing = Label(top, width = 30, text = 'Edit Ingredients', font = ('Arial', 15))
+            headline_desc.pack()
             e1.pack()
+            headline_ing.pack()
             e2.pack()
             commit_button.pack(pady=10)
     
@@ -367,7 +371,7 @@ class RecipeDatabase():
             display_recipe = recipe[1:] + recipe_ingredients
             result.append(display_recipe)
         return result
-    
+
     def filter_time(time):
         conn = RecipeDatabase.conn
         conn_ = conn.cursor()
